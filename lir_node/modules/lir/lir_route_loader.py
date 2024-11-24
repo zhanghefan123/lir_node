@@ -4,6 +4,14 @@ from modules.config import env_loader as elm
 
 class LiRRoute:
     def __init__(self, source: int, destination: int, path_length: int, link_identifiers: List, node_ids: List):
+        """
+        初始化 LiRRoute
+        :param source: 源头
+        :param destination: 目的
+        :param path_length: 路径长度
+        :param link_identifiers: 链路表示序列
+        :param node_ids: 节点标识序列
+        """
         self.source = source
         self.destination = destination
         self.path_length = path_length
@@ -21,11 +29,20 @@ class LiRRoute:
 def load_lir_routes() -> List[LiRRoute]:
     """
     加载路由条目
-    :return: 路由系列
+    :return: 路由条目系列
     """
+    """
+    1,4,3,1,2,3,3,5,4
+    1,3,2,1,2,3,3
+    1,2,1,1,2
+    """
+    # 路由文件
     lir_routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
+    # 路由条目
     lir_routes = []
+    # 打开文件
     with open(lir_routes_file_path) as f:
+        # 读取每一行
         all_lines = f.readlines()
         for line in all_lines:
             line = line.rstrip("\n")
@@ -34,31 +51,16 @@ def load_lir_routes() -> List[LiRRoute]:
             link_identifiers = []
             node_ids = []
             result = line.split(",")
-            source = int(result[0])
-            destination = int(result[1])
-            path_length = int(result[2])
-            for index in range(0, path_length, 2):
-                link_identifier = int(result[3+index])
-                node_id = int(result[4+index])
-                link_identifiers.append(link_identifier)
-                node_ids.append(node_id)
+            source = int(result[0])  # 1. 获取源
+            destination = int(result[1])  # 2. 获取目的
+            path_length = int(result[2])  # 3. 获取路径长度
+            for index in range(3, 3 + path_length * 2):
+                if index % 2 == 1:
+                    link_identifier = int(result[index])  # 4. 获取链路标识
+                    link_identifiers.append(link_identifier)
+                else:
+                    node_id = int(result[index])  # 5. 获取节点 id
+                    node_ids.append(node_id)
             lir_route = LiRRoute(source, destination, path_length, link_identifiers, node_ids)
             lir_routes.append(lir_route)
     return lir_routes
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
