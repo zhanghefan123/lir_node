@@ -10,8 +10,10 @@ class LirConfigLoader:
         初始化 LiR 配置加载器
         """
         self.netlink_client = ncm.NetlinkClient()
-        self.lir_routes = lrlm.load_lir_routes()
-        self.lir_interfaces = lilm.load_lir_interfaces()
+        self.lir_interfaces = lilm.load_lir_interfaces()  # 这一步一定需要在之前完成
+        self.lir_routes = lrlm.load_lir_routes()  # 加载路由条目
+        lilm.load_lir_interface_ifindexes(self.lir_interfaces)
+        self.print_lir_routes_and_interfaces()
 
     def init_routing_and_forwarding_table(self):
         """
@@ -27,8 +29,27 @@ class LirConfigLoader:
         """
         初始化布隆过滤器
         """
-        send_data = f"{elm.env_loader.effective_bytes},{elm.env_loader.hash_seed},{elm.env_loader.number_of_hash_functions}"
+        send_data = f"{elm.env_loader.effective_bits},{elm.env_loader.hash_seed},{elm.env_loader.number_of_hash_functions}"
         self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INIT_BLOOM_FILTER)
+
+    def insert_routing_table_entries(self):
+        """
+        进行路由条目的插入
+        """
+        for lir_route in self.lir_routes:
+            send_data = f"{lir_route.source},{lir_route.destination},{lir_route.path_length}"
+            for index in range(lir_route.path_length):
+                send_data += f",{lir_route.link_identifiers[index]},{lir_route.node_ids[index]}"
+            print(send_data, flush=True)
+            self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INSERT_ROUTING_TABLE_ENTRY)
+
+    def insert_interface_table_entries(self):
+        """
+        进行接口条目的插入
+        """
+        for index, lir_interface in enumerate(self.lir_interfaces):
+            send_data = f"{index},{lir_interface.link_identifier},{lir_interface.ifindex}"
+            self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INSERT_INTERFACE_TABLE_ENTRY)
 
     def print_lir_routes_and_interfaces(self):
         """
@@ -45,7 +66,8 @@ class LirConfigLoader:
         """
         self.init_routing_and_forwarding_table()
         self.init_bloom_filter()
-        self.print_lir_routes_and_interfaces()
+        self.insert_interface_table_entries()
+        self.insert_routing_table_entries()
 
 
 def load_lir_configuration():

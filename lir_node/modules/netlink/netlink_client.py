@@ -3,8 +3,8 @@ from pyroute2.netlink.generic import GenericNetlinkSocket
 
 if __name__ == "__main__":
     import sys
-    sys.path.append("../../")
 
+    sys.path.append("../../")
 
 VERSION_NR = 1
 
@@ -14,8 +14,8 @@ class NetlinkMessageType:
     CMD_ECHO = 1  # 测试回显命令
     CMD_INIT_ROUTING_AND_FORWARDING_TABLE = 2  # 初始化路由和转发表
     CMD_INIT_BLOOM_FILTER = 3  # 初始化布隆过滤器
-    CMD_INSERT_ROUTING_TABLE_ENTRY = 4  # 插入路由表条目
-    CMD_INSERT_INTERFACE_TABLE_ENTRY = 5  # 插入接口表条目
+    CMD_INSERT_INTERFACE_TABLE_ENTRY = 4  # 插入接口表条目
+    CMD_INSERT_ROUTING_TABLE_ENTRY = 5  # 插入路由表条目
 
     @classmethod
     def str_to_netlink_message_type(cls, netlink_message_type_str: str):
@@ -50,6 +50,7 @@ class NetlinkClient(GenericNetlinkSocket):
         message["cmd"] = message_type
         message["version"] = VERSION_NR
         message["attrs"] = [("RLINK_ATTR_DATA", data)]
+        print(f"send message = {data}", flush=True)
         kernel_response = self.nlm_request(message, self.prid, msg_flags=NLM_F_REQUEST)
         print("---------SEND NETLINK MSG TO KERNEL----------", flush=True)
         print("---------RCEIVE KERNEL RESPONSE----------", flush=True)
