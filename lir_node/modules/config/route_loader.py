@@ -2,7 +2,7 @@ from typing import List
 from modules.config import env_loader as elm
 
 
-class LiRRoute:
+class Route:
     def __init__(self, source: int, destination: int, path_length: int, link_identifiers: List, node_ids: List):
         """
         初始化 LiRRoute
@@ -26,7 +26,7 @@ class LiRRoute:
                 f"node_ids: {self.node_ids}")
 
 
-def load_lir_routes() -> List[LiRRoute]:
+def load_routes() -> List[Route]:
     """
     加载路由条目
     :return: 路由条目系列
@@ -37,11 +37,11 @@ def load_lir_routes() -> List[LiRRoute]:
     1,2,1,1,2
     """
     # 路由文件
-    lir_routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
+    routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
     # 路由条目
-    lir_routes = []
+    routes = []
     # 打开文件
-    with open(lir_routes_file_path) as f:
+    with open(routes_file_path) as f:
         # 读取每一行
         all_lines = f.readlines()
         for line in all_lines:
@@ -61,6 +61,6 @@ def load_lir_routes() -> List[LiRRoute]:
                 else:
                     node_id = int(result[index])  # 5. 获取节点 id
                     node_ids.append(node_id)
-            lir_route = LiRRoute(source, destination, path_length, link_identifiers, node_ids)
-            lir_routes.append(lir_route)
-    return lir_routes
+            route = Route(source, destination, path_length, link_identifiers, node_ids)
+            routes.append(route)
+    return routes

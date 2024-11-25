@@ -1,18 +1,18 @@
 from modules.netlink import netlink_client as ncm
-from modules.lir import lir_route_loader as lrlm
-from modules.lir import lir_interface_loader as lilm
 from modules.config import env_loader as elm
+from modules.config import interface_loader as ilm
+from modules.config import route_loader as rlm
 
 
-class LirConfigLoader:
+class KernelConfigurator:
     def __init__(self):
         """
         初始化 LiR 配置加载器
         """
         self.netlink_client = ncm.NetlinkClient()
-        self.lir_interfaces = lilm.load_lir_interfaces()  # 这一步一定需要在之前完成
-        self.lir_routes = lrlm.load_lir_routes()  # 加载路由条目
-        lilm.load_lir_interface_ifindexes(self.lir_interfaces)
+        self.lir_interfaces = ilm.load_interfaces()  # 这一步一定需要在之前完成
+        self.lir_routes = rlm.load_routes()  # 加载路由条目
+        ilm.load_lir_interface_ifindexes(self.lir_interfaces)  # 加载接口的 ifindex
         self.print_lir_routes_and_interfaces()
 
     def init_routing_and_forwarding_table(self):
@@ -20,10 +20,19 @@ class LirConfigLoader:
         初始化路由和接口表
         """
         # 总共 4 个节点, 他们的编号分别为 (1,2,3,4), 一个节点 3 条路由, 那么需要创建 5 个条目
-        number_of_routes = len(self.lir_routes) + 2
-        number_of_interfaces = len(self.lir_interfaces)
-        send_data = f"{number_of_routes},{number_of_interfaces}"
-        self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INIT_ROUTING_AND_FORWARDING_TABLE)
+        if elm.env_loader.routing_table_type == 1:  # 代表是 array based routing table type
+            number_of_routes = len(self.lir_routes) + 2
+            number_of_interfaces = (
+                len(self.lir_interfaces))
+            send_data = f"{1},{number_of_routes},{number_of_interfaces}"
+            self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INIT_ROUTING_AND_FORWARDING_TABLE)
+        elif elm.env_loader.routing_table_type == 2:  # 代表是 hash based routing table type
+            number_of_buckets = 100
+            number_of_interfaces = len(self.lir_interfaces)
+            send_data = f"{2},{number_of_buckets},{number_of_interfaces}"
+            self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INIT_ROUTING_AND_FORWARDING_TABLE)
+        else:
+            raise Exception("unknown routing table type")
 
     def init_bloom_filter(self):
         """
@@ -40,7 +49,6 @@ class LirConfigLoader:
             send_data = f"{lir_route.source},{lir_route.destination},{lir_route.path_length}"
             for index in range(lir_route.path_length):
                 send_data += f",{lir_route.link_identifiers[index]},{lir_route.node_ids[index]}"
-            print(send_data, flush=True)
             self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INSERT_ROUTING_TABLE_ENTRY)
 
     def insert_interface_table_entries(self):
@@ -71,5 +79,5 @@ class LirConfigLoader:
 
 
 def load_lir_configuration():
-    lir_config_loader = LirConfigLoader()
+    lir_config_loader = KernelConfigurator()
     lir_config_loader.start()

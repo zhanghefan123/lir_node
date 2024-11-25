@@ -4,10 +4,10 @@ from typing import List
 from modules.config import env_loader as elm
 
 
-class LiRInterface:
+class Interface:
     def __init__(self, interface_name: str, link_identifier: int):
         """
-        初始化 LiRInterface
+        初始化 Interface
         :param interface_name: 接口名称
         :param link_identifier: 接口对应的链路标识
         """
@@ -21,7 +21,7 @@ class LiRInterface:
                 f"ifindex: {self.ifindex}")
 
 
-def load_lir_interfaces() -> List[LiRInterface]:
+def load_interfaces() -> List[Interface]:
     """
     加载接口条目
     :return: 接口条目系列
@@ -43,13 +43,13 @@ def load_lir_interfaces() -> List[LiRInterface]:
             result = line.split("->")
             interface_name = result[0]
             link_identifier = int(result[1])
-            lir_interface = LiRInterface(interface_name,
+            lir_interface = Interface(interface_name,
                                          link_identifier)
             lir_interfaces.append(lir_interface)
     return lir_interfaces
 
 
-def load_lir_interface_ifindexes(lir_interfaces: List[LiRInterface]):
+def load_lir_interface_ifindexes(lir_interfaces: List[Interface]):
     """
     为所有的 lir_interfaces 设置 ifindex
     :param lir_interfaces: 所有的 lir_interfaces
@@ -63,7 +63,7 @@ def load_lir_interface_ifindexes(lir_interfaces: List[LiRInterface]):
         lir_interface.ifindex = mapping[lir_interface.interface_name]
 
 
-def is_all_interfaces_available(lir_interfaces: List[LiRInterface]) -> bool:
+def is_all_interfaces_available(lir_interfaces: List[Interface]) -> bool:
     """
     判断是否所有的接口都可用了
     :param lir_interfaces: 所有的接口

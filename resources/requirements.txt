@@ -10,8 +10,14 @@ importlib_metadata==8.5.0
 itsdangerous==2.2.0
 Jinja2==3.1.4
 MarkupSafe==2.1.5
+prompt-toolkit==1.0.14
 pycparser==2.22
+Pygments==2.18.0
+PyInquirer==1.0.3
 pyroute2==0.7.12
+regex==2024.11.6
+six==1.16.0
+wcwidth==0.2.13
 Werkzeug==3.0.6
 win-inet-pton==1.1.0
 zipp==3.20.2
