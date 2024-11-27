@@ -3,8 +3,10 @@ from modules.http_service import http_service as hsm
 from modules.frr import frr_manager as fmm
 from signal_decorator import exit_signal_listener
 from modules.kernel import kernel_configurator as kcm
-from apps.user import user_input as uim
+from apps.user import client_user_input as cuim
+from apps.user import server_user_input as suim
 from apps.transport.udp import udp_client as ucm
+from apps.transport.udp import udp_server as usm
 
 
 flask_process = None
@@ -30,14 +32,18 @@ class Starter:
 if __name__ == "__main__":
     if (len(sys.argv)) == 2 and (sys.argv[1] == "client"): # client 处理逻辑
         # 获取用户输入
-        user_input = uim.UserInput()
-        # 调用 udp_client
-        udp_client = ucm.UdpClient(user_input)
+        client_user_input = cuim.ClientUserInput()
+        # 创建 udp_client
+        udp_client = ucm.UdpClient(client_user_input)
+        # 启动 udp_client
+        udp_client.start()
     elif (len(sys.argv)) == 2 and (sys.argv[1] == "server"): # server 处理逻辑
         # 获取用户输入
-        user_input = uim.UserInput()
+        server_user_input = suim.ServerUserInput()
         # 调用 udp_server
-        udp_server = ucm.
-    else: # 正常逻辑
+        udp_server = usm.UdpServer(server_user_input)
+        # 启动 udp_server
+        udp_server.start()
+    else:  # 正常逻辑
         starter = Starter()
         starter.main_logic()

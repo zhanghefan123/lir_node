@@ -17,6 +17,24 @@ QUESTION_FOR_DESTINATION_PORT = [
 ]
 
 
+QUESTION_FOR_LISTEN_PORT = [
+    {
+        "type": "input",
+        "name": "port",
+        "message": "请输入监听端口: ",
+        "default": "31313"
+    }
+]
+
+QUESTION_FOR_SERVER_TYPE = [
+    {
+        "type": "list",
+        "name": "type",
+        "message": "请输入服务器类型:",
+        "choices": ["text", "file"]
+    }
+]
+
 QUESTION_FOR_DESTINATION = [
     {
         "type": "list",
