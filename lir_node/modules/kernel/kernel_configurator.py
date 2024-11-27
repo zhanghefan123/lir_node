@@ -2,6 +2,7 @@ from modules.netlink import netlink_client as ncm
 from modules.config import env_loader as elm
 from modules.config import interface_loader as ilm
 from modules.config import route_loader as rlm
+from modules.kernel import variables as vm
 
 
 class KernelConfigurator:
@@ -15,21 +16,31 @@ class KernelConfigurator:
         ilm.load_lir_interface_ifindexes(self.lir_interfaces)  # 加载接口的 ifindex
         self.print_lir_routes_and_interfaces()
 
+    def set_node_id(self):
+        """
+        进行节点 id 的设置, 这里使用的是图节点的 id 
+        """
+        self.netlink_client.send_netlink_data(f"{elm.env_loader.graph_node_id}", ncm.NetlinkMessageType.CMD_SET_NODE_ID)
+
+
     def init_routing_and_forwarding_table(self):
         """
         初始化路由和接口表
         """
         # 总共 4 个节点, 他们的编号分别为 (1,2,3,4), 一个节点 3 条路由, 那么需要创建 5 个条目
-        if elm.env_loader.routing_table_type == 1:  # 代表是 array based routing table type
+        routing_type = elm.env_loader.routing_type
+        if elm.env_loader.routing_table_type == vm.ARRAY_BASED_ROUTING_TABLE_TYPE:  # 代表是 array based routing table type
             number_of_routes = len(self.lir_routes) + 2
-            number_of_interfaces = (
-                len(self.lir_interfaces))
-            send_data = f"{1},{number_of_routes},{number_of_interfaces}"
-            self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INIT_ROUTING_AND_FORWARDING_TABLE)
-        elif elm.env_loader.routing_table_type == 2:  # 代表是 hash based routing table type
+            number_of_interfaces = len(self.lir_interfaces)
+            if routing_type == vm.UNICAST_ROUTING_TYPE:
+                send_data = f"{1},{routing_type},{number_of_routes},{number_of_interfaces}"
+                self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INIT_ROUTING_AND_FORWARDING_TABLE)
+            else:
+                raise Exception("multicast unsupported for array based routing table")
+        elif elm.env_loader.routing_table_type == vm.HASH_BASED_ROUTING_TABLE_TYPE:  # 代表是 hash based routing table type
             number_of_buckets = 100
             number_of_interfaces = len(self.lir_interfaces)
-            send_data = f"{2},{number_of_buckets},{number_of_interfaces}"
+            send_data = f"{2},{routing_type},{number_of_buckets},{number_of_interfaces}"
             self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INIT_ROUTING_AND_FORWARDING_TABLE)
         else:
             raise Exception("unknown routing table type")
@@ -72,6 +83,7 @@ class KernelConfigurator:
         """
         启动
         """
+        self.set_node_id()
         self.init_routing_and_forwarding_table()
         self.init_bloom_filter()
         self.insert_interface_table_entries()
