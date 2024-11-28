@@ -30,14 +30,14 @@ class Starter:
 
 
 if __name__ == "__main__":
-    if (len(sys.argv)) == 2 and (sys.argv[1] == "client"): # client 处理逻辑
+    if (len(sys.argv)) == 2 and (sys.argv[1] == "client"):  # client 处理逻辑
         # 获取用户输入
         client_user_input = cuim.ClientUserInput()
         # 创建 udp_client
         udp_client = ucm.UdpClient(client_user_input)
         # 启动 udp_client
         udp_client.start()
-    elif (len(sys.argv)) == 2 and (sys.argv[1] == "server"): # server 处理逻辑
+    elif (len(sys.argv)) == 2 and (sys.argv[1] == "server"):  # server 处理逻辑
         # 获取用户输入
         server_user_input = suim.ServerUserInput()
         # 调用 udp_server

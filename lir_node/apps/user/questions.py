@@ -56,8 +56,8 @@ QUESTION_FOR_PACKET_TRANSMISSION_PATTERN = [
     {
         "type": "list",
         "name": "pattern",
-        "message": "请选择三种发送模式之中的一种 [single] [batch] [file]:",
-        "choices": ["single", "batch", "file"]
+        "message": "请选择三种发送模式之中的一种 [single] [batch] [file] [quit to exit]:",
+        "choices": ["single", "batch", "file", "quit"]
     }
 ]
 

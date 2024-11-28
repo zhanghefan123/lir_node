@@ -6,10 +6,10 @@ from apps.user import client_user_input as uim
 from apps.sender import sender as sm
 
 
-class UdpLiRHandler:
+class UdpLiRClient:
     def __init__(self, client_user_input: uim.ClientUserInput):
         """
-        初始化
+        初始化 udp_lir_client
         :param client_user_input: 客户端输入
         """
         self.client_user_input = client_user_input
@@ -60,27 +60,31 @@ class UdpLiRHandler:
         """
         while True:
             pattern = self.get_transmission_pattern()
-            if pattern == "single":
+            if pattern == "single":  # 传输模式为一个个的发送
                 sm.send_in_single(socket_tmp=self.socket_tmp,
                                   dest_ip=self.fixed_destination_address,
                                   dest_port=self.client_user_input.selected_destination_port)
-            elif pattern == "batch":
+            elif pattern == "batch":  # 传输模式为一批批的发送
                 sm.send_in_batch(socket_tmp=self.socket_tmp,
                                  dest_ip=self.fixed_destination_address,
                                  dest_port=self.client_user_input.selected_destination_port)
-            elif pattern == "file":
+            elif pattern == "file":  # 传输模式是以文件为单位
                 sm.send_file(socket_tmp=self.socket_tmp,
                              dest_ip=self.fixed_destination_address,
                              dest_port=self.client_user_input.selected_destination_port)
-            else:
+            elif pattern == "quit":
                 break
+            else:
+                raise Exception("unsupported transmission pattern")
 
     def start(self):
         """
-        进行启动
-        :return:
+        进行 udp_lir 客户端的启动
+        :return: None
         """
+        # 获取目的节点列表
         self.destinations = self.get_destinations()
+        # 获取临时 socket
         self.socket_tmp = self.create_udp_socket_and_set_sockopt(self.destinations)
 
 
