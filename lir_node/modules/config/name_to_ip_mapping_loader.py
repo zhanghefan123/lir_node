@@ -22,6 +22,6 @@ class NameToIdIpMappingLoader:
                 if line == "":
                     continue
                 items = line.split(delimiter)
-                self.container_name_to_id_mapping[items[0]] = items[1]
+                self.container_name_to_id_mapping[items[0]] = int(items[1])
                 self.container_name_to_ip_mapping[items[0]] = items[2]
 

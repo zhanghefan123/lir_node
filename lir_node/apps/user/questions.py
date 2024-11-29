@@ -48,7 +48,7 @@ QUESTION_FOR_DESTINATION_COUNT = [
         "type": "input",
         "name": "count",
         "message": "请输入目的的数量: ",
-        "default": 1,
+        "default": "1",
     }
 ]
 

@@ -10,7 +10,8 @@ class UdpServer:
 
     def handle_text_server(self):
         all_interface_address = "0.0.0.0"
-        self.socket_tmp.bind(all_interface_address, self.selected_listen_port)
+        self.socket_tmp.bind(all_interface_address, self.server_user_input.selected_listen_port)
+        print(f"text server listening on {all_interface_address}:{self.server_user_input.selected_listen_port}", flush=True)
         while True:
             data, address = self.socket_tmp.recvfrom(1024)
             data = data.decode()
@@ -22,8 +23,8 @@ class UdpServer:
     def handle_file_server(self):
         all_interface_address = "0.0.0.0"
         buffer_size = 1024
-        self.socket_tmp.bind((all_interface_address, self.selected_listen_port))
-        print(f"file server listening on {all_interface_address}:{self.selected_server_type}", flush=True)
+        self.socket_tmp.bind((all_interface_address, self.server_user_input.selected_listen_port))
+        print(f"file server listening on {all_interface_address}:{self.server_user_input.selected_listen_port}", flush=True)
         start = 0
         first_packet = True
         while True:

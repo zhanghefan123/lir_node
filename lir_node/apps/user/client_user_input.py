@@ -35,14 +35,22 @@ class ClientUserInput:
     def get_mappings(self):
         """
         获取
-        1. 从容器名 -> ip 的映射关系
-        2. 从容器名 -> id 的映射关系
+        1. 从容器名 -> ip 的映射关系 (除去自己节点)
+        2. 从容器名 -> id 的映射关系 (除去自己节点)
         :return:
         """
         file_path = f"/configuration/{elm.env_loader.container_name}/address_mapping.conf"
         mapping_loader = ntimlm.NameToIdIpMappingLoader(file_path=file_path)
-        self.name_to_ip_mapping = mapping_loader.container_name_to_ip_mapping
-        self.name_to_id_mapping = mapping_loader.container_name_to_id_mapping
+        self.name_to_ip_mapping = {}
+        self.name_to_id_mapping = {}
+        for container_name in mapping_loader.container_name_to_ip_mapping.keys():
+            if container_name != elm.env_loader.container_name:
+                ip_address = mapping_loader.container_name_to_ip_mapping[container_name]
+                self.name_to_ip_mapping[container_name] = ip_address
+        for container_name in mapping_loader.container_name_to_id_mapping.keys():
+            if container_name != elm.env_loader.container_name:
+                graph_id = mapping_loader.container_name_to_id_mapping[container_name]
+                self.name_to_id_mapping[container_name] = graph_id
 
     def start(self):
         # 获取目的端口

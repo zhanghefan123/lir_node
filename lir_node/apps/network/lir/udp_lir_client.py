@@ -1,3 +1,4 @@
+import math
 import socket
 from typing import List
 from PyInquirer import prompt
@@ -25,7 +26,9 @@ class UdpLiRClient:
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         number_of_destinations = len(destinations)
         option_length = 2 + number_of_destinations
-        socket_options = [0x94, option_length] + destinations
+        option_alignment_length = math.ceil(float(option_length) / float(4)) * 4  # 进行 4 字节对齐后的总长度
+        alignment_part = [0x0] * (option_alignment_length - option_length)  # 补齐的部分
+        socket_options = [0x94, option_alignment_length] + destinations + alignment_part
         socket_options_in_bytes = bytearray(socket_options)
         udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_DEBUG, 1)
         udp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_OPTIONS, socket_options_in_bytes)
@@ -86,7 +89,8 @@ class UdpLiRClient:
         self.destinations = self.get_destinations()
         # 获取临时 socket
         self.socket_tmp = self.create_udp_socket_and_set_sockopt(self.destinations)
-
+        # 进行数据的发送
+        self.send_data()
 
 
 
