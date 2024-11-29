@@ -54,7 +54,7 @@ def get_info_for_file():
     获取 file_size
     :return:
     """
-    file_size = int(prompt(qm.QUESTION_FOR_MESSAGE_SIZE)["count"])
+    file_size = int(prompt(qm.QUESTION_FOR_FILE_SIZE)["count"])
     return file_size
 
 

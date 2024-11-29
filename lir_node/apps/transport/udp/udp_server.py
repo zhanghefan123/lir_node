@@ -9,8 +9,12 @@ class UdpServer:
         self.server_user_input = server_user_input
 
     def handle_text_server(self):
+        """
+        进行文本服务器的启动
+        :return: None
+        """
         all_interface_address = "0.0.0.0"
-        self.socket_tmp.bind(all_interface_address, self.server_user_input.selected_listen_port)
+        self.socket_tmp.bind((all_interface_address, self.server_user_input.selected_listen_port))
         print(f"text server listening on {all_interface_address}:{self.server_user_input.selected_listen_port}", flush=True)
         while True:
             data, address = self.socket_tmp.recvfrom(1024)
@@ -21,6 +25,10 @@ class UdpServer:
                 print(data, flush=True)
 
     def handle_file_server(self):
+        """
+        进行文件服务器的启动
+        :return: None
+        """
         all_interface_address = "0.0.0.0"
         buffer_size = 1024
         self.socket_tmp.bind((all_interface_address, self.server_user_input.selected_listen_port))
@@ -32,7 +40,7 @@ class UdpServer:
             if first_packet:
                 first_packet = False
                 start = time.time()
-            content = data.decode
+            content = data.decode()
             if content == "stop":
                 time_elapsed = time.time() - start
                 break
