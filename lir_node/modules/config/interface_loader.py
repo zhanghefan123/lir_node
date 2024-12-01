@@ -43,8 +43,7 @@ def load_interfaces() -> List[Interface]:
             result = line.split("->")
             interface_name = result[0]
             link_identifier = int(result[1])
-            lir_interface = Interface(interface_name,
-                                         link_identifier)
+            lir_interface = Interface(interface_name, link_identifier)
             lir_interfaces.append(lir_interface)
     return lir_interfaces
 

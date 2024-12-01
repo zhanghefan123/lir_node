@@ -5,6 +5,8 @@ from PyInquirer import prompt
 from apps.user import questions as qm
 from apps.user import client_user_input as uim
 from apps.sender import sender as sm
+from modules.config.env_loader import env_loader
+from defined_types import types as tm
 
 
 class UdpLiRClient:
@@ -42,6 +44,8 @@ class UdpLiRClient:
         question_for_destination_node = qm.QUESTION_FOR_DESTINATION
         question_for_destination_node[0]["choices"] = self.client_user_input.name_to_id_mapping.keys()
         destination_count = int(prompt(qm.QUESTION_FOR_DESTINATION_COUNT)["count"])
+        if (destination_count > 1) and (env_loader.routing_table_type == tm.RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE):
+            raise Exception("array based routing table type cannot support multiple destinations")
         destinations = []
         destination_name = None
         for index in range(destination_count):
