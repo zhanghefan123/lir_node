@@ -16,11 +16,15 @@ class ClientUserInput:
         self.start()
 
     def get_network_layer(self):
-        answers_for_protocol = prompt(qm.QUESTION_FOR_PROTOCOL)["protocol"]
-        if answers_for_protocol == "IP":
+        answer_for_protocol = prompt(qm.QUESTION_FOR_PROTOCOL)["protocol"]
+        if answer_for_protocol == "IP":
             self.selected_network_layer = tm.NetworkLayer.IP
-        elif answers_for_protocol == "LIR":
+        elif answer_for_protocol == "LIR":
             self.selected_network_layer = tm.NetworkLayer.LIR
+        elif answer_for_protocol == "ICING":
+            self.selected_network_layer = tm.NetworkLayer.ICING
+        elif answer_for_protocol == "OPT":
+            self.selected_network_layer = tm.NetworkLayer.OPT
         else:
             raise Exception("unsupported network type")
 
