@@ -9,7 +9,7 @@ from modules.config.env_loader import env_loader
 from defined_types import types as tm
 
 
-class UdpLiRClient:
+class UdpOtherClient:
     def __init__(self, client_user_input: uim.ClientUserInput, path_validation_protocol: int):
         """
         初始化 udp_lir_client
@@ -24,11 +24,13 @@ class UdpLiRClient:
     def create_udp_socket_and_set_sockopt(self, destinations: List):
         """
         创建 udp_socket 并设置 socket 选项
+        设置选项格式
+        (type, length, path_validation_protocol, number_of_destinations, dest1, dest2, ..., alignment...)
         :return: 创建好的并且设置好选项的 udp_socket
         """
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         number_of_destinations = len(destinations)
-        option_length = 2 + 1 + 1 + number_of_destinations  # (type, length, path_validation_protocol, number_of_destinations, dest1, dest2, ..., alignment...)
+        option_length = 2 + 1 + 1 + number_of_destinations
         option_alignment_length = math.ceil(float(option_length) / float(4)) * 4  # 进行 4 字节对齐后的总长度
         alignment_part = [0x0] * (option_alignment_length - option_length)  # 补齐的部分
         socket_options = [0x94, option_alignment_length] + [self.path_validation_protocol] + [number_of_destinations] + destinations + alignment_part

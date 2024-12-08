@@ -23,9 +23,10 @@ class UdpClient:
             udp_ip_handler.start()
         # 如果网络层选择为 lir
         elif (self.client_user_input.selected_network_layer == tm.NetworkLayer.LIR or
+              self.client_user_input.selected_network_layer == tm.NetworkLayer.ICING or
               self.client_user_input.selected_network_layer == tm.NetworkLayer.OPT or
-              self.client_user_input.selected_network_layer == tm.NetworkLayer.ICING):
-            udp_lir_handler = ulhm.UdpLiRClient(self.client_user_input, self.client_user_input.selected_network_layer)
+              self.client_user_input.selected_network_layer == tm.NetworkLayer.SELIR):
+            udp_lir_handler = ulhm.UdpOtherClient(self.client_user_input, self.client_user_input.selected_network_layer)
             udp_lir_handler.start()
         else:
             # 否则就是不支持的网络层

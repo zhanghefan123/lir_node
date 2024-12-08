@@ -25,6 +25,8 @@ class ClientUserInput:
             self.selected_network_layer = tm.NetworkLayer.ICING
         elif answer_for_protocol == "OPT":
             self.selected_network_layer = tm.NetworkLayer.OPT
+        elif answer_for_protocol == "SELIR":
+            self.selected_network_layer = tm.NetworkLayer.SELIR
         else:
             raise Exception("unsupported network type")
 
