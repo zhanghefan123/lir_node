@@ -3,7 +3,7 @@ class NetworkLayer:
     LIR = 5
     ICING = 6
     OPT = 7
-    SELIR = 8
+    SELIR = 10
 
 
 class RoutingTableType:
