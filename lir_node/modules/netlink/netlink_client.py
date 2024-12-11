@@ -12,11 +12,12 @@ VERSION_NR = 1
 class NetlinkMessageType:
     CMD_UNSPEC = 0  # 未指定的命令
     CMD_ECHO = 1  # 测试回显命令
-    CMD_SET_NODE_ID = 2 # 插入节点 id
+    CMD_SET_NODE_ID = 2  # 插入节点 id
     CMD_INIT_ROUTING_AND_FORWARDING_TABLE = 3  # 初始化路由和转发表
-    CMD_INIT_BLOOM_FILTER = 4  # 初始化布隆过滤器
-    CMD_INSERT_INTERFACE_TABLE_ENTRY = 5  # 插入接口表条目
-    CMD_INSERT_ROUTING_TABLE_ENTRY = 6  # 插入路由表条目
+    CMD_INIT_SELIR = 4  # 初始化 selir 数据结构
+    CMD_INIT_BLOOM_FILTER = 5  # 初始化布隆过滤器
+    CMD_INSERT_INTERFACE_TABLE_ENTRY = 6  # 插入接口表条目
+    CMD_INSERT_ROUTING_TABLE_ENTRY = 7  # 插入路由表条目
 
     @classmethod
     def str_to_netlink_message_type(cls, netlink_message_type_str: str):

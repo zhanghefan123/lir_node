@@ -42,11 +42,19 @@ class KernelConfigurator:
         else:
             raise Exception("unknown routing table type")
 
+    def init_selir(self):
+        """
+        初始化 selir 的信息
+        :return:
+        """
+        send_data = f"{elm.env_loader.pvf_effective_bits}"
+        self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INIT_SELIR)
+
     def init_bloom_filter(self):
         """
         初始化布隆过滤器
         """
-        send_data = f"{elm.env_loader.effective_bits},{elm.env_loader.hash_seed},{elm.env_loader.number_of_hash_functions}"
+        send_data = f"{elm.env_loader.bf_effective_bits},{elm.env_loader.hash_seed},{elm.env_loader.number_of_hash_functions}"
         self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INIT_BLOOM_FILTER)
 
     def insert_routing_table_entries(self):
@@ -82,6 +90,7 @@ class KernelConfigurator:
         """
         self.set_node_id()
         self.init_routing_and_forwarding_table()
+        self.init_selir()
         self.init_bloom_filter()
         self.insert_interface_table_entries()
         self.insert_routing_table_entries()
