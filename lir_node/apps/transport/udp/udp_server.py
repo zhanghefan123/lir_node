@@ -1,5 +1,6 @@
 import time
 import socket
+from tools.network import interface_rate as irm
 from apps.user import server_user_input as suim
 
 
@@ -30,9 +31,14 @@ class UdpServer:
         :return: None
         """
         all_interface_address = "0.0.0.0"
+        received_payload_size = 0
         buffer_size = 1024
-        self.socket_tmp.bind((all_interface_address, self.server_user_input.selected_listen_port))
-        print(f"file server listening on {all_interface_address}:{self.server_user_input.selected_listen_port}", flush=True)
+        selected_listen_port = self.server_user_input.selected_listen_port
+        selected_interface_name = self.server_user_input.selected_interface_name
+        self.socket_tmp.bind((all_interface_address, selected_listen_port))
+        print(f"file server listening on {all_interface_address}:{selected_listen_port} "
+              f"and interface {selected_interface_name}", flush=True)
+        rx_bytes_start = irm.get_interface_rx_bytes(interface_name=selected_interface_name)
         start = 0
         first_packet = True
         while True:
@@ -44,7 +50,12 @@ class UdpServer:
             if content == "stop":
                 time_elapsed = time.time() - start
                 break
+            received_payload_size += len(data)
+        rx_bytes_end = irm.get_interface_rx_bytes(interface_name=selected_interface_name)
+        # 在结束的时候计算一下 goodput
         print(f"File received. Total time: {time_elapsed} seconds", flush=True)
+        print(f"Goodput: {received_payload_size / time_elapsed / 1024 / 1024} MB/s", flush=True)
+        print(f"Throughput: {(rx_bytes_end - rx_bytes_start) / time_elapsed / 1024 / 1024} MB/s", flush=True)
 
     def create_socket(self):
         self.socket_tmp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

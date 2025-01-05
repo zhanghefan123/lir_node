@@ -72,7 +72,7 @@ class KernelConfigurator:
         进行接口条目的插入
         """
         for index, lir_interface in enumerate(self.lir_interfaces):
-            send_data = f"{index},{lir_interface.link_identifier},{lir_interface.ifindex}"
+            send_data = f"{index},{lir_interface.link_identifier},{lir_interface.ifindex},{lir_interface.peer_ip_address}"
             self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INSERT_INTERFACE_TABLE_ENTRY)
 
     def print_lir_routes_and_interfaces(self):

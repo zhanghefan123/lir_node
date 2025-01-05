@@ -27,6 +27,10 @@ class ClientUserInput:
             self.selected_network_layer = tm.NetworkLayer.OPT
         elif answer_for_protocol == "SELIR":
             self.selected_network_layer = tm.NetworkLayer.SELIR
+        elif answer_for_protocol == "FAST_SELIR":
+            self.selected_network_layer = tm.NetworkLayer.FAST_SELIR
+        elif answer_for_protocol == "MULTICAST_SELIR":
+            self.selected_network_layer = tm.NetworkLayer.MULTICAST_SELIR
         else:
             raise Exception("unsupported network type")
 

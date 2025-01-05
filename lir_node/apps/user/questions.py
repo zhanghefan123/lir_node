@@ -3,7 +3,7 @@ QUESTION_FOR_PROTOCOL = [
         "type": "list",
         "name": "protocol",
         "message": "请输入要使用的网络层协议: ",
-        "choices": ["IP", "LIR", "ICING", "OPT", "SELIR"]
+        "choices": ["IP", "LIR", "ICING", "OPT", "SELIR", "FAST_SELIR", "MULTICAST_SELIR"]
     }
 ]
 
@@ -32,6 +32,15 @@ QUESTION_FOR_SERVER_TYPE = [
         "name": "type",
         "message": "请输入服务器类型:",
         "choices": ["text", "file"]
+    }
+]
+
+QUESTION_FOR_INTERFACE_NAME = [
+    {
+        "type": "list",
+        "name": "interface",
+        "message": "请选择一个接口: ",
+        "choices": []
     }
 ]
 

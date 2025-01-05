@@ -5,7 +5,7 @@ from modules.config import env_loader as elm
 
 
 class Interface:
-    def __init__(self, interface_name: str, link_identifier: int):
+    def __init__(self, interface_name: str, link_identifier: int, peer_ip_address: str):
         """
         初始化 Interface
         :param interface_name: 接口名称
@@ -14,11 +14,13 @@ class Interface:
         self.interface_name = interface_name
         self.link_identifier = link_identifier
         self.ifindex = None
+        self.peer_ip_address = peer_ip_address
 
     def __str__(self):
         return (f"interface_name: {self.interface_name} "
                 f"link_identifier: {self.link_identifier} "
-                f"ifindex: {self.ifindex}")
+                f"ifindex: {self.ifindex}"
+                f"peer_ip_address: {self.peer_ip_address}")
 
 
 def load_interfaces() -> List[Interface]:
@@ -43,7 +45,8 @@ def load_interfaces() -> List[Interface]:
             result = line.split("->")
             interface_name = result[0]
             link_identifier = int(result[1])
-            lir_interface = Interface(interface_name, link_identifier)
+            peer_interface_address = result[2][:-3]
+            lir_interface = Interface(interface_name, link_identifier, peer_interface_address)
             lir_interfaces.append(lir_interface)
     return lir_interfaces
 

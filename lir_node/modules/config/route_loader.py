@@ -37,7 +37,7 @@ def load_routes() -> List[Route]:
     1,2,1,1,2
     """
     # 路由文件
-    routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
+    routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/all_lir.txt"
     # 路由条目
     routes = []
     # 打开文件
