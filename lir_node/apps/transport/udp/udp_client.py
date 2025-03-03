@@ -17,9 +17,9 @@ class UdpClient:
         进行 udp_client 的启动
         :return: None
         """
-        # 如果网络层选择为 ip
-        if self.client_user_input.selected_network_layer == tm.NetworkLayer.IP:
-            udp_ip_handler = uihm.UdpIpClient(self.client_user_input)
+        # 如果网络层选择为 ip 或者 srv6
+        if self.client_user_input.selected_network_layer == tm.NetworkLayer.IP or self.client_user_input.selected_network_layer == tm.NetworkLayer.SRV6:
+            udp_ip_handler = uihm.UdpIpClient(self.client_user_input, self.client_user_input.selected_network_layer)
             udp_ip_handler.start()
         # 如果网络层选择为 lir
         elif (self.client_user_input.selected_network_layer == tm.NetworkLayer.LIR or

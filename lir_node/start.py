@@ -7,6 +7,7 @@ from apps.user import client_user_input as cuim
 from apps.user import server_user_input as suim
 from apps.transport.udp import udp_client as ucm
 from apps.transport.udp import udp_server as usm
+from modules.srv6 import srv6_manager as smm
 
 
 flask_process = None
@@ -24,8 +25,10 @@ class Starter:
             2. 启动 无限循环
         :return:
         """
-        fmm.start_frr()
-        kcm.load_lir_configuration()
+        fmm.start_frr()  # 启动 frr
+        srv6_routes = smm.read_srv6_routes()  # 进行 srv6 routes 的读取
+        smm.insert_srv6_routes(srv6_routes)   # 进行 srv6 routes 的插入
+        kcm.load_lir_configuration()  # 加载 lir 配置
         hsm.start_flask_http_service()  # 这是一个死循环
 
 

@@ -1,4 +1,5 @@
 class NetworkLayer:
+    SRV6 = 3
     IP = 4
     LIR = 5
     ICING = 7

@@ -3,7 +3,7 @@ QUESTION_FOR_PROTOCOL = [
         "type": "list",
         "name": "protocol",
         "message": "请输入要使用的网络层协议: ",
-        "choices": ["IP", "LIR", "ICING", "OPT", "SELIR", "FAST_SELIR", "MULTICAST_SELIR"]
+        "choices": ["SRV6", "IP", "LIR", "ICING", "OPT", "SELIR", "FAST_SELIR", "MULTICAST_SELIR"]
     }
 ]
 
@@ -41,6 +41,15 @@ QUESTION_FOR_INTERFACE_NAME = [
         "name": "interface",
         "message": "请选择一个接口: ",
         "choices": []
+    }
+]
+
+QUESTION_FOR_IP_VERSION = [
+    {
+        "type": "list",
+        "name": "version",
+        "message": "请选择 IP 版本: ",
+        "choices": ["IPv4", "IPv6"]
     }
 ]
 

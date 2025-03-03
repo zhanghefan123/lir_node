@@ -12,6 +12,7 @@ class ServerUserInput:
         self.selected_listen_port = None
         self.selected_server_type = None
         self.selected_interface_name = None
+        self.selected_ip_version = None
         self.start()
 
     def get_listen_port(self):
@@ -25,10 +26,15 @@ class ServerUserInput:
         question[0]["choices"] = get_interface_names()
         return prompt(question)["interface"]
 
+    def get_version(self):
+        question = qm.QUESTION_FOR_IP_VERSION
+        return prompt(question)["version"]
+
     def start(self):
         self.selected_listen_port = self.get_listen_port()
         self.selected_server_type = self.get_server_type()
         self.selected_interface_name = self.get_interface()
+        self.selected_ip_version = self.get_version()
 
 
 if __name__ == "__main__":
@@ -36,4 +42,5 @@ if __name__ == "__main__":
     print(server_user_input.selected_listen_port)
     print(server_user_input.selected_server_type)
     print(server_user_input.selected_interface_name)
+    print(server_user_input.selected_ip_version)
     print("done")

@@ -12,12 +12,15 @@ class ClientUserInput:
         self.selected_destination_name = None
         self.selected_transmission_pattern = None
         self.name_to_ip_mapping = None
+        self.name_to_ipv6_mapping = None
         self.name_to_id_mapping = None
         self.start()
 
     def get_network_layer(self):
         answer_for_protocol = prompt(qm.QUESTION_FOR_PROTOCOL)["protocol"]
-        if answer_for_protocol == "IP":
+        if answer_for_protocol == "SRV6":
+            self.selected_network_layer = tm.NetworkLayer.SRV6
+        elif answer_for_protocol == "IP":
             self.selected_network_layer = tm.NetworkLayer.IP
         elif answer_for_protocol == "LIR":
             self.selected_network_layer = tm.NetworkLayer.LIR
@@ -52,11 +55,16 @@ class ClientUserInput:
         file_path = f"/configuration/{elm.env_loader.container_name}/address_mapping.conf"
         mapping_loader = ntimlm.NameToIdIpMappingLoader(file_path=file_path)
         self.name_to_ip_mapping = {}
+        self.name_to_ipv6_mapping = {}
         self.name_to_id_mapping = {}
         for container_name in mapping_loader.container_name_to_ip_mapping.keys():
             if container_name != elm.env_loader.container_name:
                 ip_address = mapping_loader.container_name_to_ip_mapping[container_name]
                 self.name_to_ip_mapping[container_name] = ip_address
+        for container_name in mapping_loader.container_name_to_ipv6_mapping.keys():
+            if container_name != elm.env_loader.container_name:
+                ipv6_address = mapping_loader.container_name_to_ipv6_mapping[container_name]
+                self.name_to_ipv6_mapping[container_name] = ipv6_address
         for container_name in mapping_loader.container_name_to_id_mapping.keys():
             if container_name != elm.env_loader.container_name:
                 graph_id = mapping_loader.container_name_to_id_mapping[container_name]
