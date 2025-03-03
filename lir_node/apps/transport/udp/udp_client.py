@@ -1,7 +1,7 @@
 from apps.user import client_user_input as uim
 from defined_types import types as tm
 from apps.network.ip import udp_ip_client as uihm
-from apps.network.lir import udp_lir_client as ulhm
+from apps.network.lir import udp_other_client as ulhm
 
 
 class UdpClient:

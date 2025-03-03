@@ -13,6 +13,7 @@ class EnvLoader:
         self.routing_table_type = int(os.getenv("ROUTING_TABLE_TYPE"))
         self.node_id = int(os.getenv("NODE_ID"))
         self.graph_node_id = int(os.getenv("GRAPH_NODE_ID"))
+        self.lir_single_time_encoding_count = int(os.getenv("LIR_SINGLE_TIME_ENCODING_COUNT"))
 
 
 env_loader = EnvLoader()

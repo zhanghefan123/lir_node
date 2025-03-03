@@ -18,6 +18,7 @@ class NetlinkMessageType:
     CMD_INIT_BLOOM_FILTER = 5  # 初始化布隆过滤器
     CMD_INSERT_INTERFACE_TABLE_ENTRY = 6  # 插入接口表条目
     CMD_INSERT_ROUTING_TABLE_ENTRY = 7  # 插入路由表条目
+    CMD_SET_LIR_SINGLE_TIME_ENCODING_COUNT = 8  # 设置 lir 单次插入的元素次数
 
     @classmethod
     def str_to_netlink_message_type(cls, netlink_message_type_str: str):

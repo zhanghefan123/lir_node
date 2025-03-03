@@ -75,6 +75,13 @@ class KernelConfigurator:
             send_data = f"{index},{lir_interface.link_identifier},{lir_interface.ifindex},{lir_interface.peer_ip_address}"
             self.netlink_client.send_netlink_data(send_data, ncm.NetlinkMessageType.CMD_INSERT_INTERFACE_TABLE_ENTRY)
 
+    def set_lir_single_time_encoding_count(self):
+        """
+        设置 lir 单次插入的元素的次数
+        :return:
+        """
+        self.netlink_client.send_netlink_data(f"{elm.env_loader.lir_single_time_encoding_count}", ncm.NetlinkMessageType.CMD_SET_LIR_SINGLE_TIME_ENCODING_COUNT)
+
     def print_lir_routes_and_interfaces(self):
         """
         打印 LiR 的路由条目和接口条目
@@ -94,6 +101,7 @@ class KernelConfigurator:
         self.init_bloom_filter()
         self.insert_interface_table_entries()
         self.insert_routing_table_entries()
+        self.set_lir_single_time_encoding_count()
 
 
 def load_lir_configuration():
