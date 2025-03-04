@@ -26,9 +26,9 @@ class Starter:
         :return:
         """
         fmm.start_frr()  # 启动 frr
-        srv6_routes = smm.read_srv6_routes()  # 进行 srv6 routes 的读取
-        smm.insert_srv6_routes(srv6_routes)   # 进行 srv6 routes 的插入
-        kcm.load_lir_configuration()  # 加载 lir 配置
+        kcm.load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
+        srv6_routes = smm.read_srv6_routes()  # 进行 srv6 routes 的读取 (放在 load_lir_configuration 之后)
+        smm.insert_srv6_routes(srv6_routes)   # 进行 srv6 routes 的插入 (放在 load_lir_configuration 之后)
         hsm.start_flask_http_service()  # 这是一个死循环
 
 

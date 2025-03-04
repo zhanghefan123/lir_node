@@ -57,7 +57,7 @@ class UdpOtherClient:
             destinations.append(destination_id)
         # 当只有一个目的节点的时候 -> 将这个目的节点的 ip 作为目的 ip
         if destination_count == 1:
-            self.destination_address = self.client_user_input.name_to_ip_mapping[destination_name]
+            self.destination_address = self.client_user_input.name_to_first_ipv4_mapping[destination_name]
         else:
             self.destination_address = "1.1.1.1"
 

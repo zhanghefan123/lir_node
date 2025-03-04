@@ -3,6 +3,7 @@ from apps.user import questions as qm
 from defined_types import types as tm
 from modules.config import env_loader as elm
 from modules.config import name_to_ip_mapping_loader as ntimlm
+from modules.config import name_to_srv6_dest_mapping_loader as ntsdml
 
 
 class ClientUserInput:
@@ -11,8 +12,10 @@ class ClientUserInput:
         self.selected_destination_port = None
         self.selected_destination_name = None
         self.selected_transmission_pattern = None
-        self.name_to_ip_mapping = None
-        self.name_to_ipv6_mapping = None
+        self.name_to_srv6_dest_ip_mapping = None
+        self.name_to_srv6_dest_ifname_mapping = None
+        self.name_to_first_ipv4_mapping = None
+        self.name_to_first_ipv6_mapping = None
         self.name_to_id_mapping = None
         self.start()
 
@@ -52,23 +55,23 @@ class ClientUserInput:
         2. 从容器名 -> id 的映射关系 (除去自己节点)
         :return:
         """
-        file_path = f"/configuration/{elm.env_loader.container_name}/address_mapping.conf"
-        mapping_loader = ntimlm.NameToIdIpMappingLoader(file_path=file_path)
-        self.name_to_ip_mapping = {}
-        self.name_to_ipv6_mapping = {}
-        self.name_to_id_mapping = {}
-        for container_name in mapping_loader.container_name_to_ip_mapping.keys():
-            if container_name != elm.env_loader.container_name:
-                ip_address = mapping_loader.container_name_to_ip_mapping[container_name]
-                self.name_to_ip_mapping[container_name] = ip_address
-        for container_name in mapping_loader.container_name_to_ipv6_mapping.keys():
-            if container_name != elm.env_loader.container_name:
-                ipv6_address = mapping_loader.container_name_to_ipv6_mapping[container_name]
-                self.name_to_ipv6_mapping[container_name] = ipv6_address
-        for container_name in mapping_loader.container_name_to_id_mapping.keys():
-            if container_name != elm.env_loader.container_name:
-                graph_id = mapping_loader.container_name_to_id_mapping[container_name]
-                self.name_to_id_mapping[container_name] = graph_id
+        container_name = elm.env_loader.container_name
+        first_interface_file_path = f"/configuration/{elm.env_loader.container_name}/route/address_mapping.conf"
+        srv6_dest_file_path = f"/configuration/{elm.env_loader.container_name}/route/ipv6_destination.txt"
+        # first_interface_mapping_loader
+        # ---------------------------------------------------------------------------------------------------
+        first_interface_mapping_loader = ntimlm.NameToIdIpMappingLoader(file_path=first_interface_file_path,
+                                                                        container_name=container_name)
+        self.name_to_first_ipv4_mapping = first_interface_mapping_loader.name_to_first_ipv4_mapping
+        self.name_to_first_ipv6_mapping = first_interface_mapping_loader.name_to_first_ipv6_mapping
+        self.name_to_id_mapping = first_interface_mapping_loader.name_to_id_mapping
+        # ---------------------------------------------------------------------------------------------------
+        # srv6_dest_mapping_loader
+        # ---------------------------------------------------------------------------------------------------
+        srv6_dest_mapping_loader = ntsdml.NameToSrv6DestMappingLoader(file_path=srv6_dest_file_path)
+        self.name_to_srv6_dest_ip_mapping = srv6_dest_mapping_loader.container_name_to_ipv6_mapping
+        self.name_to_srv6_dest_ifname_mapping = srv6_dest_mapping_loader.container_name_to_dest_ifname_mapping
+        # ---------------------------------------------------------------------------------------------------
 
     def start(self):
         # 获取目的端口

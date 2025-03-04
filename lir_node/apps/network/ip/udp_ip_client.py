@@ -41,14 +41,15 @@ class UdpIpClient:
     def get_destination_name_and_ip(self):
         if self.selected_network_layer == tm.NetworkLayer.IP:
             question_for_destination_node = qm.QUESTION_FOR_DESTINATION
-            question_for_destination_node[0]["choices"] = list(self.client_user_input.name_to_ip_mapping.keys())
+            question_for_destination_node[0]["choices"] = list(self.client_user_input.name_to_first_ipv4_mapping.keys())
             self.selected_destination_name = prompt(question_for_destination_node)["destination"]
-            self.selected_destination_ip = self.client_user_input.name_to_ip_mapping[self.selected_destination_name]
+            self.selected_destination_ip = self.client_user_input.name_to_first_ipv4_mapping[self.selected_destination_name]
         elif self.selected_network_layer == tm.NetworkLayer.SRV6:
             question_for_destination_node = qm.QUESTION_FOR_DESTINATION
-            question_for_destination_node[0]["choices"] = list(self.client_user_input.name_to_ipv6_mapping.keys())
+            question_for_destination_node[0]["choices"] = list(self.client_user_input.name_to_first_ipv6_mapping.keys())
             self.selected_destination_name = prompt(question_for_destination_node)["destination"]
-            self.selected_destination_ip = self.client_user_input.name_to_ipv6_mapping[self.selected_destination_name]
+            self.selected_destination_ip = self.client_user_input.name_to_srv6_dest_ip_mapping[self.selected_destination_name]
+            print(f"用户选择的目的节点的 ipv6 地址为: {self.selected_destination_ip} 选择的目的接口是: {self.client_user_input.name_to_srv6_dest_ifname_mapping[self.selected_destination_name]}")
         else:
             raise Exception("unsupported network layer")
 

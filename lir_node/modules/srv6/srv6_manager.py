@@ -26,9 +26,6 @@ def insert_srv6_routes(srv6_routes: List[str]) -> None:
     :return:
     """
 
-    # 确保接口完全建立
-    time.sleep(5)
-
     # 进行命令的执行
     for route in srv6_routes:
         try:
