@@ -1,4 +1,8 @@
-import math
+import socket
+import time
 
-option_length = 7
-print(math.ceil(float(option_length) / float(4)) * 4)
+if __name__ == "__main__":
+    while True:
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_socket.sendto("ffffff".encode(), ("192.168.0.6", 31313))
+        time.sleep(1)

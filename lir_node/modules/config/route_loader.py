@@ -1,5 +1,7 @@
 from typing import List
+from defined_types.types import RoutingTableType
 from modules.config import env_loader as elm
+from modules.config.env_loader import env_loader
 
 
 class Route:
@@ -37,13 +39,18 @@ def load_routes() -> List[Route]:
     1,2,1,1,2
     """
     # 路由文件
-    routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/all_lir.txt"
+    routes_file_path = ""
+    if env_loader.routing_table_type == RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE:
+        routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
+    elif env_loader.routing_table_type == RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE:
+        routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/all_lir.txt"
     # 路由条目
     routes = []
     # 打开文件
     with open(routes_file_path) as f:
         # 读取每一行
         all_lines = f.readlines()
+        print(all_lines, flush=True)
         for line in all_lines:
             line = line.rstrip("\n")
             if line == "":

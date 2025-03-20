@@ -56,10 +56,6 @@ def load_lir_interface_ifindexes(lir_interfaces: List[Interface]):
     为所有的 lir_interfaces 设置 ifindex
     :param lir_interfaces: 所有的 lir_interfaces
     """
-    while True:
-        if is_all_interfaces_available(lir_interfaces):
-            break
-        time.sleep(1)
     mapping = get_current_interface_to_ifindex_mapping()
     for lir_interface in lir_interfaces:
         lir_interface.ifindex = mapping[lir_interface.interface_name]

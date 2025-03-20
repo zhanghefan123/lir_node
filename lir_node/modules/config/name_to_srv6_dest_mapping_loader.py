@@ -1,3 +1,6 @@
+import os.path
+
+
 class NameToSrv6DestMappingLoader:
     def __init__(self, file_path: str):
         """
@@ -11,12 +14,13 @@ class NameToSrv6DestMappingLoader:
 
     def load(self):
         delimiter = "->"
-        with open(self.file_path, "r") as f:
-            lines = f.readlines()
-            for line in lines:
-                line = line.rstrip("\n")
-                if line == "":
-                    continue
-                items = line.split(delimiter)
-                self.container_name_to_ipv6_mapping[items[0]] = items[1]
-                self.container_name_to_dest_ifname_mapping[items[0]] = items[2]
+        if os.path.exists(self.file_path):
+            with open(self.file_path, "r") as f:
+                lines = f.readlines()
+                for line in lines:
+                    line = line.rstrip("\n")
+                    if line == "":
+                        continue
+                    items = line.split(delimiter)
+                    self.container_name_to_ipv6_mapping[items[0]] = items[1]
+                    self.container_name_to_dest_ifname_mapping[items[0]] = items[2]

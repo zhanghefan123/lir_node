@@ -1,5 +1,9 @@
 FROM python_env:latest
 
+RUN apt-get update \
+     && apt-get install -y \
+    tcpdump
+
 COPY ./lir_node /lir_node
 
 COPY resources/daemons /etc/frr/daemons

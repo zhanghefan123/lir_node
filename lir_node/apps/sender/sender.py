@@ -41,9 +41,8 @@ def send_in_batch(socket_tmp: socket.socket, dest_ip: str, dest_port: int):
     :return:
     """
     message_size, batch_size, interval = get_info_for_batch()
-    send_message = ("f" * message_size).encode()
     for index in range(batch_size):
-        socket_tmp.sendto(send_message, (dest_ip, dest_port))
+        socket_tmp.sendto(("f" * message_size).encode(), (dest_ip, dest_port))
         time.sleep(interval)
         if index % 100 == 0:
             print(f"current send {index} packets", flush=True)

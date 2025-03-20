@@ -1,3 +1,4 @@
+from modules.config.interface_loader import is_all_interfaces_available
 from modules.netlink import netlink_client as ncm
 from modules.config import env_loader as elm
 from modules.config import interface_loader as ilm
@@ -12,7 +13,7 @@ class KernelConfigurator:
         """
         self.netlink_client = ncm.NetlinkClient()
         self.lir_interfaces = ilm.load_interfaces()  # 这一步一定需要在之前完成
-        self.lir_routes = rlm.load_routes()  # 加载路由条目
+        self.lir_routes = rlm.load_routes()  # 加载路由条目, if is the array based routing table (only need to store source routes)
         ilm.load_lir_interface_ifindexes(self.lir_interfaces)  # 加载接口的 ifindex
         self.print_lir_routes_and_interfaces()
 
@@ -34,7 +35,7 @@ class KernelConfigurator:
             self.netlink_client.send_netlink_data(send_data,
                                                   ncm.NetlinkMessageType.CMD_INIT_ROUTING_AND_FORWARDING_TABLE)
         elif elm.env_loader.routing_table_type == tm.RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE:  # 代表是 hash based routing table type
-            number_of_buckets = 100
+            number_of_buckets = 2000
             number_of_interfaces = len(self.lir_interfaces)
             send_data = f"{tm.RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE},{number_of_buckets},{number_of_interfaces}"
             self.netlink_client.send_netlink_data(send_data,
