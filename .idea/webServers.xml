@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="9d4ece72-9aa8-4126-85b5-c58c1fccd10b" name="树莓派1">
+        <fileTransfer rootFolder="/home/zeusnet" accessType="SFTP" host="192.168.110.79" port="22" sshConfigId="9e70c16a-859f-4e01-bb8e-13f8e9218706" sshConfig="zeusnet@192.168.110.79:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+      <webServer id="e613be45-54dc-4402-834e-b2834450197f" name="树莓派2">
+        <fileTransfer rootFolder="/home/zeusnet" accessType="SFTP" host="192.168.110.92" port="22" sshConfigId="782edeb3-347c-4f9d-9835-7b1c771e445a" sshConfig="zeusnet@192.168.110.92:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+      <webServer id="518dd321-4a36-424a-95c9-7c357c7f1db7" name="树莓派3">
+        <fileTransfer rootFolder="/home/zeusnet" accessType="SFTP" host="192.168.110.93" port="22" sshConfigId="d2d9a3f4-ffa2-414c-a80e-8c0d826e752a" sshConfig="zeusnet@192.168.110.93:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

@@ -1,11 +1,8 @@
 import sys
 import time
-from asyncio import wait_for
-
 from modules.config import interface_loader as ilm
 from modules.config.env_loader import env_loader
 from modules.config.interface_loader import is_all_interfaces_available
-from modules.http_service import http_service as hsm
 from modules.frr import frr_manager as fmm
 from signal_decorator import exit_signal_listener
 from modules.kernel import kernel_configurator as kcm
@@ -43,14 +40,17 @@ class Starter:
         :return:
         """
         fmm.start_frr()  # 启动 frr
-        wait_for_all_interfaces_available()
+        wait_for_all_interfaces_available() # 等待所有接口准备完毕
         kcm.load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
         if "true" == env_loader.enable_srv6:
             srv6_routes = smm.read_srv6_routes()  # 进行 srv6 routes 的读取 (放在 load_lir_configuration 之后)
             smm.insert_srv6_routes(srv6_routes)   # 进行 srv6 routes 的插入 (放在 load_lir_configuration 之后)
-        # hsm.start_flask_http_service()  # 这是一个死循环
         while True:
             time.sleep(1)
+
+    def main_logic_for_raspberrypi(self):
+        wait_for_all_interfaces_available()  # 等待所有接口准备完毕
+        kcm.load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
 
 
 if __name__ == "__main__":
@@ -68,6 +68,9 @@ if __name__ == "__main__":
         udp_server = usm.UdpServer(server_user_input)
         # 启动 udp_server
         udp_server.start()
+    elif (len(sys.argv)) == 2 and (sys.argv[1] == "raspberrypi"):  # raspberrypi 处理逻辑
+        starter = Starter()
+        starter.main_logic_for_raspberrypi()
     else:  # 正常逻辑
         starter = Starter()
         starter.main_logic()
