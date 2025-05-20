@@ -10,9 +10,9 @@ class KernelConfiguratorForRsapberrypi:
         """
         初始化 LiR 配置加载器
         """
-        lir_interface_file_path = "/home/zeusnet/Projects/lir_node/resources/interface.txt"
-        lir_route_file_path = "/home/zeusnet/Projects/lir_node/resources/lir.txt"
-        lir_all_route_file_path = "/home/zeusnet/Projects/lir_node/resources/all_lir.txt"
+        lir_interface_file_path = "/home/zeusnet/Projects/configuration/interface/interface.txt"
+        lir_route_file_path = "/home/zeusnet/Projects/configuration/route/lir.txt"
+        lir_all_route_file_path = "/home/zeusnet/Projects/configuration/route/all_lir.txt"
         self.netlink_client = ncm.NetlinkClient()
         self.lir_interfaces = ilm.load_interfaces(lir_interface_file_path=lir_interface_file_path)  # 这一步一定需要在之前完成
         self.lir_routes = rlm.load_routes(lir_route_file_path=lir_route_file_path, lir_all_route_file_path=lir_all_route_file_path)  # 加载路由条目, if is the array based routing table (only need to store source routes)
@@ -98,7 +98,7 @@ class KernelConfiguratorForRsapberrypi:
         """
         启动
         """
-        pass # 先不进行任何操作, 看是否可行
+        pass  # 先不进行任何操作, 看是否可行
         # self.set_node_id()
         # self.init_routing_and_forwarding_table()
         # self.init_selir()
