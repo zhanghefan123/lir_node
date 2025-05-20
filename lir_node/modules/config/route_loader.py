@@ -28,7 +28,7 @@ class Route:
                 f"node_ids: {self.node_ids}")
 
 
-def load_routes() -> List[Route]:
+def load_routes(lir_route_file_path: str = "", lir_all_route_file_path: str = "") -> List[Route]:
     """
     加载路由条目
     :return: 路由条目系列
@@ -41,9 +41,15 @@ def load_routes() -> List[Route]:
     # 路由文件
     routes_file_path = ""
     if env_loader.routing_table_type == RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE:
-        routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
+        if "" == lir_route_file_path:
+            routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
+        else:
+            routes_file_path = lir_route_file_path
     elif env_loader.routing_table_type == RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE:
-        routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/all_lir.txt"
+        if "" == lir_all_route_file_path:
+            routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/all_lir.txt"
+        else:
+            routes_file_path = lir_all_route_file_path
     # 路由条目
     routes = []
     # 打开文件

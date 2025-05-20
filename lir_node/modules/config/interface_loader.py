@@ -23,15 +23,15 @@ class Interface:
                 f"peer_ip_address: {self.peer_ip_address}")
 
 
-def load_interfaces() -> List[Interface]:
+def load_interfaces(lir_interface_file_path: str = "") -> List[Interface]:
     """
     加载接口条目
     :return: 接口条目系列
     ln2_idx1->2
     ln2_idx2->3
     """
-    # 接口文件
-    lir_interface_file_path = f"/configuration/{elm.env_loader.container_name}/interface/interface.txt"
+    if "" == lir_interface_file_path:
+        lir_interface_file_path = f"/configuration/{elm.env_loader.container_name}/interface/interface.txt"
     # 接口条目
     lir_interfaces = []
     # 打开文件

@@ -5,7 +5,7 @@ from modules.config.env_loader import env_loader
 from modules.config.interface_loader import is_all_interfaces_available
 from modules.frr import frr_manager as fmm
 from signal_decorator import exit_signal_listener
-from modules.kernel import kernel_configurator as kcm
+from modules.kernel import kernel_config_loader as kclm
 from apps.user import client_user_input as cuim
 from apps.user import server_user_input as suim
 from apps.transport.udp import udp_client as ucm
@@ -41,7 +41,7 @@ class Starter:
         """
         fmm.start_frr()  # 启动 frr
         wait_for_all_interfaces_available() # 等待所有接口准备完毕
-        kcm.load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
+        kclm.load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
         if "true" == env_loader.enable_srv6:
             srv6_routes = smm.read_srv6_routes()  # 进行 srv6 routes 的读取 (放在 load_lir_configuration 之后)
             smm.insert_srv6_routes(srv6_routes)   # 进行 srv6 routes 的插入 (放在 load_lir_configuration 之后)
@@ -50,7 +50,7 @@ class Starter:
 
     def main_logic_for_raspberrypi(self):
         wait_for_all_interfaces_available()  # 等待所有接口准备完毕
-        kcm.load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
+        kclm.raspberrypi_load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
 
 
 if __name__ == "__main__":
