@@ -89,22 +89,26 @@ class KernelConfiguratorForRsapberrypi:
         """
         打印 LiR 的路由条目和接口条目
         """
+        print("-----------------all-lir-routes-----------------", flush=True)
         for lir_route in self.lir_routes:
             print(lir_route, flush=True)
+        print("-----------------all-lir-routes-----------------", flush=True)
+        print("---------------all-lir-interfaces---------------", flush=True)
         for lir_interface in self.lir_interfaces:
             print(lir_interface, flush=True)
+        print("---------------all-lir-interfaces---------------", flush=True)
 
     def start(self):
         """
         启动
         """
         pass  # 先不进行任何操作, 看是否可行
-        # self.set_node_id()
-        # self.init_routing_and_forwarding_table()
-        # self.init_selir()
-        # self.init_bloom_filter()
-        # self.insert_interface_table_entries()
-        # self.insert_routing_table_entries()
-        # self.set_lir_single_time_encoding_count()
+        self.set_node_id()
+        self.init_routing_and_forwarding_table()
+        self.init_selir()
+        self.init_bloom_filter()
+        self.insert_interface_table_entries()
+        self.insert_routing_table_entries()
+        self.set_lir_single_time_encoding_count()
 
 

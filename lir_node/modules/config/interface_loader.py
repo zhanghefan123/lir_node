@@ -19,7 +19,7 @@ class Interface:
     def __str__(self):
         return (f"interface_name: {self.interface_name} "
                 f"link_identifier: {self.link_identifier} "
-                f"ifindex: {self.ifindex}"
+                f"ifindex: {self.ifindex} "
                 f"peer_ip_address: {self.peer_ip_address}")
 
 

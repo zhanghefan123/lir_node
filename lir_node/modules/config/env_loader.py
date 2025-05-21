@@ -15,7 +15,6 @@ class EnvLoader:
         self.graph_node_id = int(os.getenv("GRAPH_NODE_ID"))
         self.lir_single_time_encoding_count = int(os.getenv("LIR_SINGLE_TIME_ENCODING_COUNT"))
         self.enable_srv6 = os.getenv("ENABLE_SRV6")  # 是否开启 SRv6 in str format
-        print(f"graph node id = {self.graph_node_id}")
 
 
 env_loader = EnvLoader()

@@ -56,7 +56,6 @@ def load_routes(lir_route_file_path: str = "", lir_all_route_file_path: str = ""
     with open(routes_file_path) as f:
         # 读取每一行
         all_lines = f.readlines()
-        print(all_lines, flush=True)
         for line in all_lines:
             line = line.rstrip("\n")
             if line == "":

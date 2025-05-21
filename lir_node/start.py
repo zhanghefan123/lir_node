@@ -16,13 +16,13 @@ from modules.srv6 import srv6_manager as smm
 flask_process = None
 
 
-def wait_for_all_interfaces_available():
+def wait_for_all_interfaces_available(lir_interface_file_path_tmp=""):
     """
     等待所有的接口都可用
     :return:
     """
     while True:
-        if is_all_interfaces_available(ilm.load_interfaces()):
+        if is_all_interfaces_available(ilm.load_interfaces(lir_interface_file_path=lir_interface_file_path_tmp)):
             break
         time.sleep(1)
 
@@ -40,7 +40,7 @@ class Starter:
         :return:
         """
         fmm.start_frr()  # 启动 frr
-        wait_for_all_interfaces_available() # 等待所有接口准备完毕
+        wait_for_all_interfaces_available()  # 等待所有接口准备完毕
         kclm.load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
         if "true" == env_loader.enable_srv6:
             srv6_routes = smm.read_srv6_routes()  # 进行 srv6 routes 的读取 (放在 load_lir_configuration 之后)
@@ -48,8 +48,8 @@ class Starter:
         while True:
             time.sleep(1)
 
-    def main_logic_for_raspberrypi(self):
-        wait_for_all_interfaces_available()  # 等待所有接口准备完毕
+    def main_logic_for_raspberrypi(self, lir_interface_file_path_tmp):
+        wait_for_all_interfaces_available(lir_interface_file_path_tmp)  # 等待所有接口准备完毕
         kclm.raspberrypi_load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
 
 
@@ -70,7 +70,8 @@ if __name__ == "__main__":
         udp_server.start()
     elif (len(sys.argv)) == 2 and (sys.argv[1] == "raspberrypi"):  # raspberrypi 处理逻辑
         starter = Starter()
-        starter.main_logic_for_raspberrypi()
+        lir_interface_file_path = "/home/zeusnet/Projects/configuration/interface/interface.txt"
+        starter.main_logic_for_raspberrypi(lir_interface_file_path_tmp=lir_interface_file_path)
     else:  # 正常逻辑
         starter = Starter()
         starter.main_logic()
