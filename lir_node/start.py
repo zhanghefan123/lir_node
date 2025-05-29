@@ -5,24 +5,24 @@ from modules.config.env_loader import env_loader
 from modules.config.interface_loader import is_all_interfaces_available
 from modules.frr import frr_manager as fmm
 from signal_decorator import exit_signal_listener
-from modules.kernel import kernel_config_loader as kclm
 from apps.user import client_user_input as cuim
 from apps.user import server_user_input as suim
 from apps.transport.udp import udp_client as ucm
 from apps.transport.udp import udp_server as usm
 from modules.srv6 import srv6_manager as smm
+from modules.kernel import kernel_config_loader as kclm
 
 
 flask_process = None
 
 
-def wait_for_all_interfaces_available(lir_interface_file_path_tmp=""):
+def wait_for_all_interfaces_available():
     """
     等待所有的接口都可用
     :return:
     """
     while True:
-        if is_all_interfaces_available(ilm.load_interfaces(lir_interface_file_path=lir_interface_file_path_tmp)):
+        if is_all_interfaces_available(ilm.load_interfaces()):
             break
         time.sleep(1)
 
@@ -48,9 +48,13 @@ class Starter:
         while True:
             time.sleep(1)
 
-    def main_logic_for_raspberrypi(self, lir_interface_file_path_tmp):
-        wait_for_all_interfaces_available(lir_interface_file_path_tmp)  # 等待所有接口准备完毕
-        kclm.raspberrypi_load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
+    def main_logic_for_raspberrypi(self):
+        kclm.load_lir_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
+        if "true" == env_loader.enable_srv6:
+            print("zhf add code: insert srv6 route")
+            srv6_routes = smm.read_srv6_routes()  # 进行 srv6 routes 的读取 (放在 load_lir_configuration 之后)
+            print(srv6_routes)
+            smm.insert_srv6_routes(srv6_routes)  # 进行 srv6 routes 的插入 (放在 load_lir_configuration 之后)
 
 
 if __name__ == "__main__":
@@ -68,10 +72,9 @@ if __name__ == "__main__":
         udp_server = usm.UdpServer(server_user_input)
         # 启动 udp_server
         udp_server.start()
-    elif (len(sys.argv)) == 2 and (sys.argv[1] == "raspberrypi"):  # raspberrypi 处理逻辑
+    elif (len(sys.argv)) == 2 and (sys.argv[1] == "raspberrypi"): # raspberrypi
         starter = Starter()
-        lir_interface_file_path = "/home/zeusnet/Projects/configuration/interface/interface.txt"
-        starter.main_logic_for_raspberrypi(lir_interface_file_path_tmp=lir_interface_file_path)
+        starter.main_logic_for_raspberrypi()
     else:  # 正常逻辑
         starter = Starter()
         starter.main_logic()

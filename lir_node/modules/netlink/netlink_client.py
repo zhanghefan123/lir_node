@@ -19,6 +19,7 @@ class NetlinkMessageType:
     CMD_INSERT_INTERFACE_TABLE_ENTRY = 6  # 插入接口表条目
     CMD_INSERT_ROUTING_TABLE_ENTRY = 7  # 插入路由表条目
     CMD_SET_LIR_SINGLE_TIME_ENCODING_COUNT = 8  # 设置 lir 单次插入的元素次数
+    CMD_PRINT_ROUTING_TABLE_ENTRIES = 9  # 释放 net 内的空间
 
     @classmethod
     def str_to_netlink_message_type(cls, netlink_message_type_str: str):
@@ -39,7 +40,7 @@ class NetlinkMessageFormat(genlmsg):
 class NetlinkClient(GenericNetlinkSocket):
     def __init__(self):
         super().__init__()
-        self.bind("EXMPL_GENL", NetlinkMessageFormat)
+        self.bind("EXMPL_GENL_LIP", NetlinkMessageFormat)
 
     def send_netlink_data(self, data: str, message_type: int):
         """

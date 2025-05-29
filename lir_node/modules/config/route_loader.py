@@ -1,3 +1,4 @@
+import os
 from typing import List
 from defined_types.types import RoutingTableType
 from modules.config import env_loader as elm
@@ -28,7 +29,7 @@ class Route:
                 f"node_ids: {self.node_ids}")
 
 
-def load_routes(lir_route_file_path: str = "", lir_all_route_file_path: str = "") -> List[Route]:
+def load_routes() -> List[Route]:
     """
     加载路由条目
     :return: 路由条目系列
@@ -39,20 +40,17 @@ def load_routes(lir_route_file_path: str = "", lir_all_route_file_path: str = ""
     1,2,1,1,2
     """
     # 路由文件
-    routes_file_path = ""
     if env_loader.routing_table_type == RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE:
-        if "" == lir_route_file_path:
-            routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
-        else:
-            routes_file_path = lir_route_file_path
+        routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
     elif env_loader.routing_table_type == RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE:
-        if "" == lir_all_route_file_path:
-            routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/all_lir.txt"
-        else:
-            routes_file_path = lir_all_route_file_path
+        routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/all_lir.txt"
+    else:
+        print("not available routing table type")
+        exit(1)
     # 路由条目
     routes = []
     # 打开文件
+    print(f"routes_file_path: {routes_file_path}")
     with open(routes_file_path) as f:
         # 读取每一行
         all_lines = f.readlines()

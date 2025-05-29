@@ -1,7 +1,6 @@
-import os
 import subprocess
-import time
 from typing import List
+from modules.config import env_loader as elm
 
 
 def read_srv6_routes() -> List[str]:
@@ -9,13 +8,13 @@ def read_srv6_routes() -> List[str]:
     读取 SRv6 路由信息
     :return: 路由信息列表
     """
-    container_name = os.getenv("CONTAINER_NAME")
-    srv6_file_path = f"/configuration/{container_name}/route/srv6.txt"
+    srv6_file_path = f"/configuration/{elm.env_loader.container_name}/route/srv6.txt"
     try:
         with open(srv6_file_path, "r") as f:
             all_routes = f.readlines()
             return all_routes
     except FileNotFoundError:
+        print("no routes are recorded")
         return []
 
 
