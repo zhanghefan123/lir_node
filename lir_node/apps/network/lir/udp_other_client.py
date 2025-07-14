@@ -25,7 +25,7 @@ class UdpOtherClient:
         """
         创建 udp_socket 并设置 socket 选项
         设置选项格式
-        (type, length, path_validation_protocol, number_of_destinations, dest1, dest2, ..., alignment...)
+        (type, length, protocol, number_of_destinations, dest1, dest2, ..., alignment...)
         :return: 创建好的并且设置好选项的 udp_socket
         """
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
