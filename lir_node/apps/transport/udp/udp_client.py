@@ -27,7 +27,9 @@ class UdpClient:
               self.client_user_input.selected_network_layer == tm.NetworkLayer.OPT or
               self.client_user_input.selected_network_layer == tm.NetworkLayer.SELIR or
               self.client_user_input.selected_network_layer == tm.NetworkLayer.FAST_SELIR or
-              self.client_user_input.selected_network_layer == tm.NetworkLayer.MULTICAST_SELIR):
+              self.client_user_input.selected_network_layer == tm.NetworkLayer.MULTICAST_SELIR or
+              self.client_user_input.selected_network_layer == tm.NetworkLayer.EPIC_SESSION_SETUP or
+              self.client_user_input.selected_network_layer == tm.NetworkLayer.EPIC_DATA):
             udp_lir_handler = ulhm.UdpOtherClient(self.client_user_input, self.client_user_input.selected_network_layer)
             udp_lir_handler.start()
         else:

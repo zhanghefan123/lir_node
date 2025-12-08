@@ -37,6 +37,10 @@ class ClientUserInput:
             self.selected_network_layer = tm.NetworkLayer.FAST_SELIR
         elif answer_for_protocol == "MULTICAST_SELIR":
             self.selected_network_layer = tm.NetworkLayer.MULTICAST_SELIR
+        elif answer_for_protocol == "EPIC_SESSION_SETUP":
+            self.selected_network_layer = tm.NetworkLayer.EPIC_SESSION_SETUP
+        elif answer_for_protocol == "EPIC_DATA":
+            self.selected_network_layer = tm.NetworkLayer.EPIC_DATA
         else:
             raise Exception("unsupported network type")
 
