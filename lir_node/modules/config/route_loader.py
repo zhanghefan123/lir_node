@@ -1,6 +1,6 @@
 import os
 from typing import List
-from defined_types.types import RoutingTableType
+from defined_types.types import PathValidationTransmissionType
 from modules.config import env_loader as elm
 from modules.config.env_loader import env_loader
 
@@ -39,38 +39,44 @@ def load_routes() -> List[Route]:
     1,3,2,1,2,3,3
     1,2,1,1,2
     """
-    # 路由文件
-    if env_loader.routing_table_type == RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE:
+    # setting routes_file_path
+    routes_file_path = "unknown"
+    if env_loader.transmission_type == PathValidationTransmissionType.UNICAST_TRANSMISSION_TYPE:
         routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
-    elif env_loader.routing_table_type == RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE:
+    elif env_loader.transmission_type == PathValidationTransmissionType.MULTIPATH_TRANSMISSION_TYPE:
+        routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/multipath.txt"
+    elif env_loader.transmission_type == PathValidationTransmissionType.MULTICAST_TRANSMISSION_TYPE:
         routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/all_lir.txt"
+    elif env_loader.transmission_type == PathValidationTransmissionType.MAB_TRANSMISSION_TYPE:
+        print("mab does not need any route", flush=True)
     else:
-        print("not available routing table type")
-        exit(1)
+        raise ValueError(f"unsupported transmission type {env_loader.transmission_type}")
+
     # 路由条目
     routes = []
     # 打开文件
     print(f"routes_file_path: {routes_file_path}")
-    with open(routes_file_path) as f:
-        # 读取每一行
-        all_lines = f.readlines()
-        for line in all_lines:
-            line = line.rstrip("\n")
-            if line == "":
-                continue
-            link_identifiers = []
-            node_ids = []
-            result = line.split(",")
-            source = int(result[0])  # 1. 获取源
-            destination = int(result[1])  # 2. 获取目的
-            path_length = int(result[2])  # 3. 获取路径长度
-            for index in range(3, 3 + path_length * 2):
-                if index % 2 == 1:
-                    link_identifier = int(result[index])  # 4. 获取链路标识
-                    link_identifiers.append(link_identifier)
-                else:
-                    node_id = int(result[index])  # 5. 获取节点 id
-                    node_ids.append(node_id)
-            route = Route(source, destination, path_length, link_identifiers, node_ids)
-            routes.append(route)
+    if os.path.exists(routes_file_path):
+        with open(routes_file_path) as f:
+            # 读取每一行
+            all_lines = f.readlines()
+            for line in all_lines:
+                line = line.rstrip("\n")
+                if line == "":
+                    continue
+                link_identifiers = []
+                node_ids = []
+                result = line.split(",")
+                source = int(result[0])  # 1. 获取源
+                destination = int(result[1])  # 2. 获取目的
+                path_length = int(result[2])  # 3. 获取路径长度
+                for index in range(3, 3 + path_length * 2):
+                    if index % 2 == 1:
+                        link_identifier = int(result[index])  # 4. 获取链路标识
+                        link_identifiers.append(link_identifier)
+                    else:
+                        node_id = int(result[index])  # 5. 获取节点 id
+                        node_ids.append(node_id)
+                route = Route(source, destination, path_length, link_identifiers, node_ids)
+                routes.append(route)
     return routes

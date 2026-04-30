@@ -22,3 +22,6 @@ win-inet-pton==1.1.0
 zipp==3.20.2
 zope.event==5.0
 zope.interface==7.1.1
+gevent==23.9.1
+networkx==3.1
+dataclasses-json==0.6.7

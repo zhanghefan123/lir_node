@@ -4,7 +4,9 @@ QUESTION_FOR_PROTOCOL = [
         "name": "protocol",
         "message": "请输入要使用的网络层协议: ",
         "choices": ["SRV6", "IP", "LIR", "ICING", "OPT", "SELIR",
-                    "FAST_SELIR", "MULTICAST_SELIR", "EPIC_SESSION_SETUP", "EPIC_DATA"]
+                    "FAST_SELIR", "MULTICAST_SELIR", "EPIC_SESSION_SETUP",
+                    "EPIC_DATA", "ATLAS", "MULTIPATH_SELIR",
+                    "MULTICAST_OPT", "SEC_PATH_MAB"]
     }
 ]
 
@@ -32,7 +34,7 @@ QUESTION_FOR_SERVER_TYPE = [
         "type": "list",
         "name": "type",
         "message": "请输入服务器类型:",
-        "choices": ["text", "file"]
+        "choices": ["text", "file", "multiprocess_file"]
     }
 ]
 
@@ -50,7 +52,25 @@ QUESTION_FOR_IP_VERSION = [
         "type": "list",
         "name": "version",
         "message": "请选择 IP 版本: ",
-        "choices": ["IPv4", "IPv6"]
+        "choices": ["Ipv4", "Ipv6"]
+    }
+]
+
+QUESTION_FOR_NUMBER_OF_PROCESSES = [
+    {
+        "type": "input",
+        "name": "processes",
+        "message": "请输入发包进程的数量: ",
+        "default": "1",
+    }
+]
+
+QUESTION_FOR_NUMBER_OF_RECEIVING_PROCESSES = [
+    {
+        "type": "input",
+        "name": "processes",
+        "message": "请输入收包进程的数量: ",
+        "default": "1",
     }
 ]
 
@@ -115,5 +135,14 @@ QUESTION_FOR_FILE_SIZE = [
         "name": "count",
         "message": "请输入要发送文件的大小 (字节): ",
         "default": "100"
+    }
+]
+
+QUESTION_FOR_BUFFER_SIZE = [
+    {
+        "type": "input",
+        "name": "count",
+        "message": "请输入单个 udp 包的大小: ",
+        "default": "1024"
     }
 ]
