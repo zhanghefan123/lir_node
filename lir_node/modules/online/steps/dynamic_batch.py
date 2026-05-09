@@ -60,7 +60,9 @@ def start_dynamic_batch(sm: sem.Simulator):
             determine_path_time_elapsed = (datetime.datetime.now() - start_time).total_seconds()  # 记录经过了多少时间
             sm.sim_graph.determine_path_time_elapsed_list.append(determine_path_time_elapsed)  # 进行list的更新
             sm.sim_graph.retrieved_timestamp_list.append(time.time())
+            sm.sim_graph.selected_paths.append(current_epoch_selected_path)
             # ----------------------- 根据更新后的模型进行路径的选择  -----------------------
+
             if (sm.latest_selected_path is None) or (sm.latest_selected_path.description != current_epoch_selected_path.description):
                 sm.latest_selected_path = current_epoch_selected_path
                 # 获取 mini_batch_size
