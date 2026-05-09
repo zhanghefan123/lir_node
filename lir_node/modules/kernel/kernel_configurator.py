@@ -9,6 +9,7 @@ from modules.online.entities.sim_end_host import SimEndHost
 from typing import List, Optional
 from modules.config import env_loader as elm
 from modules.online.entities import retrieved_feedback as rfm
+from modules.online.check_event_thread import scheduled_event as sem
 
 
 class KernelConfigurator:
@@ -374,9 +375,6 @@ class KernelConfigurator:
             # 把 feedback 全部打印出来
             return retrieved_feedbacks
 
-    def start_sec_path_mab_synchronize(self, rate_adjust_mode: int):
-        self.netlink_client.send_netlink_data(f"{rate_adjust_mode}", tm.NetlinkMessageType.CMD_START_SEC_PATH_MAB_SYNCHRONIZE)
-
     def retrieve_kernel_information_for_dynamic_batch(self) -> (int, int, int, int, int, List[int], List[int], bool):
         final_string = f""
         received_string = self.netlink_client.send_netlink_data(final_string,
@@ -418,6 +416,21 @@ class KernelConfigurator:
     def set_min_ack_for_rtt_estimation(self, value):
         final_string = f"{value}"
         self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_MIN_ACK_FOR_RTT_ESTIMATION)
+
+    def start_sec_path_mab_synchronize(self, rate_adjust_mode: int):
+        self.netlink_client.send_netlink_data(f"{rate_adjust_mode}",
+                                              tm.NetlinkMessageType.CMD_START_SEC_PATH_MAB_SYNCHRONIZE)
+
+    def set_best_path_id_for_source(self, best_path_id: int):
+        final_string = f"{best_path_id}"
+        self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_BEST_PATH_ID_FOR_SOURCE)
+
+    def set_malicious_params_from_event(self, scheduled_event: sem.ScheduledEvent):
+        final_string = (
+            f"{scheduled_event.corrupt_ratio_start},{scheduled_event.corrupt_ratio_end},"
+            f"{scheduled_event.corrupt_special_packet_ratio_start},{scheduled_event.corrupt_special_packet_ratio_end}")
+        self.netlink_client.send_netlink_data(final_string,
+                                              tm.NetlinkMessageType.CMD_SET_MALICIOUS_PARAMS_FOR_NORMAL_ROUTER)
 
     def print_lir_routes_and_interfaces(self):
         """

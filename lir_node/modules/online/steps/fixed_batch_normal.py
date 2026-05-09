@@ -3,7 +3,6 @@ from modules.online.entities.retrieved_feedback import RetrievedFeedback
 from modules.online.steps import simulator as sem
 from modules.online.entities import sim_path as sppm
 from typing import List
-
 from modules.online.types.types import RateAdjustMode
 from tools import count as cm
 from apps.network.lir import udp_other_client as uocm
@@ -14,7 +13,7 @@ from modules.kernel import kernel_configurator as kcm
 
 
 def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulator,
-                                                          current_epoch_selected_path: sppm.SimPath) -> List[RetrievedFeedback]:
+                                                                 current_epoch_selected_path: sppm.SimPath) -> List[RetrievedFeedback]:
     """
     进行真实的数据包的转发
     :return:
@@ -30,7 +29,8 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
                 # 进行状态的更新
                 sm.latest_acks_epoch = retrieved_feedback.epoch_id
                 sm.sim_graph.sending_elapsed_list.append(retrieved_feedback.sending_time_elapsed)
-                sm.sim_graph.packet_sending_rate.append(float(sm.client_detailed_info.batch_size) / (retrieved_feedback.sending_time_elapsed / 1000 / 1000))
+                sm.sim_graph.packet_sending_rate.append(
+                    float(sm.client_detailed_info.batch_size) / (retrieved_feedback.sending_time_elapsed / 1000 / 1000))
                 sm.sim_graph.retrieved_timestamp_list.append(time.time())
             return retrieved_feedbacks
 
@@ -50,7 +50,8 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
             delivery_ratio_list.append((1 - simDirectedPvLink.illegal_ratios[-1]))
 
     # 进行返回
-    if (sm.latest_selected_path is None) or (sm.latest_selected_path.description != current_epoch_selected_path.description):
+    if (sm.latest_selected_path is None) or (
+            sm.latest_selected_path.description != current_epoch_selected_path.description):
         # 获取批次大小
         batch_size = sm.simulator_params.number_of_pkts_per_link * (
                 len(current_epoch_selected_path.pv_routers) + 1)
@@ -85,22 +86,6 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
     sm.sim_graph.relied_acks_epochs.append(sm.latest_acks_epoch)
     sm.sim_graph.selected_paths.append(current_epoch_selected_path)
     # --------------------------------------------------------------------------------------------------------------------------------------------
-    # 按照 scheduled_list 进行更新
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    updated = osm.update_according_to_scheduled_list(sm, sm.latest_sending_epoch)
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    # 进行路径的损失值的更新
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    if updated or (sm.best_path is None):
-        sm.best_path = osm.recalculate_score_and_find_best_path(sm)
-    sm.sim_graph.best_paths.append(sm.best_path)
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    # 如果当前选择的路径和 best path 不一致的话, 那么 regret 进行 + 1 的操作
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    current_regret = current_epoch_selected_path.calculate_regret(sm.simulator_params.minimum_delivery_ratio)
-    sm.sim_graph.accumulate_current_regret += current_regret
-    sm.sim_graph.regret_list.append(sm.sim_graph.accumulate_current_regret / float(sm.latest_sending_epoch))
-    # --------------------------------------------------------------------------------------------------------------------------------------------
     # 完成之后再检查一次
     return []
 
@@ -131,7 +116,8 @@ def start_fixed_batch_normal(sm: sem.Simulator):
             current_epoch_selected_path = sm.latest_selected_path
 
         # 2.3 case1: 进行数据包的发送 / case2: 进行一系列 ack 的取回
-        retrieved_feedbacks = forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm, current_epoch_selected_path)
+        retrieved_feedbacks = forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm,
+                                                                                           current_epoch_selected_path)
         if len(retrieved_feedbacks) == 0:
             sm.retrieved_acks = False  # 如果只是进行数据包的发送, 那么 continue, 模型以及路径不变
             continue
@@ -149,7 +135,9 @@ def start_fixed_batch_normal(sm: sem.Simulator):
             # 进行所有的反馈的遍历, 从而计算出所选路径的, 每条链路的数据包破坏率
             for index in range(retrieved_feedback.number_of_sample_nodes):
                 if index == 0:
-                    estimated_legal_ratio = min(float(retrieved_feedback.retrieved_ack_counts[index] / retrieved_feedback.expected_ack_counts[index]), 1.0)
+                    estimated_legal_ratio = min(float(
+                        retrieved_feedback.retrieved_ack_counts[index] / retrieved_feedback.expected_ack_counts[index]),
+                                                1.0)
                 else:
                     delivery_ratio_before = float(retrieved_feedback.retrieved_ack_counts[index - 1]) / float(
                         retrieved_feedback.expected_ack_counts[index - 1])  # 84 / 100
@@ -172,7 +160,8 @@ def start_fixed_batch_normal(sm: sem.Simulator):
             for directed_pv_link in sm.sim_graph.sim_directed_abs_links:
                 if directed_pv_link.description in directed_abs_links_mapping:
                     illegal_ratio = directed_pv_link.illegal_ratios[-1]
-                    rectified_loss = osm.calculate_rectified_loss(sm, illegal_ratio, directed_pv_link.explore_probabilities[-1])
+                    rectified_loss = osm.calculate_rectified_loss(sm, illegal_ratio,
+                                                                  directed_pv_link.explore_probabilities[-1])
                     directed_pv_link.rectified_losses.append(rectified_loss)
                 else:
                     rectified_loss = 0.0

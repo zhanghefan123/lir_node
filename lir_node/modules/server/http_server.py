@@ -5,14 +5,15 @@ from gevent.pywsgi import WSGIServer
 from apps.user.client_detailed_info import ClientDetailedInfo
 from apps.user.server_detailed_info import ServerDetailedInfo
 from modules.config import env_loader as elm
-from modules.online.entities.sim_normal_router import SimNormalRouter, ScheduledEvent
+from modules.online.check_event_thread.check_event_thread import CheckThread
+from modules.online.entities import sim_normal_router as snrm
+from modules.online.check_event_thread import scheduled_event as sem
 from tools import json_response as jrm
 from apps.transport.udp import udp_client as ucm
 from apps.transport.udp import udp_server as usm
 from datetime import datetime
 from modules.kernel import kernel_configurator as kcm
 from defined_types import types as tmm
-from modules.online.types import types as tm
 from modules.online.steps import simulator as sm
 from modules.online.steps import start_simulator as ssm
 from defined_types import types as dtm
@@ -216,33 +217,38 @@ def flask_start_retrieve_acks():
 
 
 def set_scheduled_malicious_params_core(data):
-    employed_epoch = data["employed_epoch"]
+    employed_epoch_or_timestamp_ms = data["employed_epoch_or_timestamp_ms"]
     set_node_id = data["node_id"]
     corrupt_ratio_start = data["corrupt_ratio_start"]
     corrupt_ratio_end = data["corrupt_ratio_end"]
     corrupt_special_packet_ratio_start = data["corrupt_special_packet_ratio_start"]
     corrupt_special_packet_ratio_end = data["corrupt_special_packet_ratio_end"]
     if set_node_id == elm.env_loader.node_id:
-        kcm.kernel_config_loader.set_scheduled_malicious_params(employed_epoch,
+        scheduled_event = sem.ScheduledEvent(set_node_id, None, employed_epoch_or_timestamp_ms, corrupt_ratio_start,
+                                             corrupt_ratio_end,
+                                             corrupt_special_packet_ratio_start, corrupt_special_packet_ratio_end)
+        kcm.kernel_config_loader.set_scheduled_malicious_params(employed_epoch_or_timestamp_ms,
                                                                 corrupt_ratio_start,
                                                                 corrupt_ratio_end,
                                                                 corrupt_special_packet_ratio_start,
                                                                 corrupt_special_packet_ratio_end)
         print(f"set scheduled malicious params for normal router: {corrupt_ratio_start},{corrupt_ratio_end},"
               f"{corrupt_special_packet_ratio_start},{corrupt_special_packet_ratio_end}", flush=True)
+
     elif 1 == elm.env_loader.node_id:
         normal_router = sm.simulator_instance.sim_graph.sim_abstract_nodes_mapping[
             f"NormalRouter-{set_node_id}"].actual_node
-        if isinstance(normal_router, SimNormalRouter):
-            scheduled_event = ScheduledEvent(employed_epoch, corrupt_ratio_start, corrupt_ratio_end,
-                                             corrupt_special_packet_ratio_start, corrupt_special_packet_ratio_end)
-            normal_router.scheduled_event_list.append(scheduled_event)
+        if isinstance(normal_router, snrm.SimNormalRouter):
+            scheduled_event = sem.ScheduledEvent(set_node_id, normal_router, employed_epoch_or_timestamp_ms, corrupt_ratio_start, corrupt_ratio_end,
+                                                 corrupt_special_packet_ratio_start, corrupt_special_packet_ratio_end)
             print(f"set scheduled malicious params for source: {corrupt_ratio_start},{corrupt_ratio_end},"
                   f"{corrupt_special_packet_ratio_start},{corrupt_special_packet_ratio_end}", flush=True)
         else:
             raise RuntimeError("could not resolve scheduled malicious params")
     else:
         raise RuntimeError("could not resolve scheduled malicious params")
+    # 源节点插入 event (为了查出最优路径), 其他节点插入 event (为了进行 corrupt ratio 的设置)
+    sm.simulator_instance.scheduled_event_list.append(scheduled_event)
 
 
 @flask_instance.route("/setSchduledMaliciousParams", methods=["POST"])
@@ -258,8 +264,6 @@ def set_scheduled_malicious_params():
 @flask_instance.route("/startSync", methods=["POST"])
 def start_sync():
     data = json.loads(request.data)
-    raw = request.get_data(as_text=True)
-    print(repr(raw))  # 若看到 'null' 或 'null\n'，loads 后就是 None
     start_sync_core(data)
     response_data = {
         "status": "success"
@@ -271,3 +275,5 @@ def start_sync_core(data):
     sm.simulator_instance.simulator_params.rate_adjust_mode = data["rate_adjust_mode"]
     sm.simulator_instance.sync_timestamp = time.time()
     kcm.kernel_config_loader.start_sec_path_mab_synchronize(sm.simulator_instance.simulator_params.rate_adjust_mode)
+    check_thread = CheckThread()
+    check_thread.start()

@@ -98,26 +98,6 @@ def get_retrieved_timestamp_list(sm: sem.Simulator, destination_dir: str):
     write_statistics_to_file(destination_dir, "retrieved_timestamps.txt", result_list)
 
 
-def get_best_paths_list(sm: sem.Simulator, destination_dir: str):
-    result_list = []
-    desc_and_data = DescriptionAndData(
-        description="best_paths",
-        datas=format_float_slice([item.path_id for item in sm.sim_graph.best_paths])
-    )
-    result_list.append(desc_and_data)
-    write_statistics_to_file(destination_dir, "best_paths.txt", result_list)
-
-
-def get_avg_regret_list(sm: sem.Simulator, destination_dir: str):
-    result_list = []
-    desc_and_data = DescriptionAndData(
-        description="avg_regret_list",
-        datas=format_float_slice(sm.sim_graph.regret_list)
-    )
-    result_list.append(desc_and_data)
-    write_statistics_to_file(destination_dir, "regret_list.txt", result_list)
-
-
 def get_determine_path_time_elapsed(sm: sem.Simulator, destination_dir: str):
     result_list = []
     desc_and_data = DescriptionAndData(
@@ -294,8 +274,6 @@ def get_statistics(sm: sem.Simulator, destination_output_dir: str):
     get_packet_sending_rate(sm, destination_output_dir)
     get_sending_elapsed_list(sm, destination_output_dir)
     get_selected_path(sm, destination_output_dir)
-    get_best_paths_list(sm, destination_output_dir)
-    get_avg_regret_list(sm, destination_output_dir)
     get_determine_path_time_elapsed(sm, destination_output_dir)
     get_update_model_time_elapsed(sm, destination_output_dir)
     get_pv_links_weights(sm, destination_output_dir)

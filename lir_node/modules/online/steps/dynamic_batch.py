@@ -66,20 +66,8 @@ def start_dynamic_batch(sm: sem.Simulator):
                                                                                     path_mapping)  # 决策当前路径 (原代码此处注释为 2.2，应为确定本轮路径)
             determine_path_time_elapsed = (datetime.datetime.now() - start_time).total_seconds()  # 记录经过了多少时间
             sm.sim_graph.determine_path_time_elapsed_list.append(determine_path_time_elapsed)  # 进行list的更新
-            # ----------------------- 根据更新后的模型进行路径的选择  -----------------------
-
-            # ----------------------- 进行所选择的路径以及最优路径更新 -----------------------
-            current_epoch = sm.latest_acks_epoch + 1
-            updated = osm.update_according_to_scheduled_list(sm, current_epoch)
-            if updated or (sm.best_path is None):
-                sm.best_path = osm.recalculate_score_and_find_best_path(sm)
-            sm.sim_graph.best_paths.append(sm.best_path)
-            sm.sim_graph.selected_paths.append(current_epoch_selected_path)
             sm.sim_graph.retrieved_timestamp_list.append(time.time())
-            current_regret = current_epoch_selected_path.calculate_regret(
-                sm.simulator_params.minimum_delivery_ratio)
-            sm.sim_graph.accumulate_current_regret += current_regret
-            sm.sim_graph.regret_list.append(sm.sim_graph.accumulate_current_regret / float(current_epoch))
+            # ----------------------- 根据更新后的模型进行路径的选择  -----------------------
             if (sm.latest_selected_path is None) or (sm.latest_selected_path.description != current_epoch_selected_path.description):
                 sm.latest_selected_path = current_epoch_selected_path
                 # 获取 mini_batch_size

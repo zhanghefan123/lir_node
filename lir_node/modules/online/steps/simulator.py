@@ -45,6 +45,8 @@ class Simulator:
         self.simulator_init_steps: Set[str] = set()  # Go 中的 map[string]struct{} 在 Python 中是标准的 Set (集合)
         self.rectified_loss_calculating_type: str = tm.RectifiedLossCalculateType.TYPE_SCALING  # loss 计算方式
         self.sync_timestamp = 0
+        self.scheduled_event_list = []
+        self.packet_best_path_id = 1
         # ----------------------------- 一般参数 -----------------------------
 
         # ----------------------------- fixed batch 相关参数 -----------------------------

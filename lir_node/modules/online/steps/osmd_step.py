@@ -8,37 +8,12 @@ import math
 from modules.online.tools import probs as pm
 
 
-def update_according_to_scheduled_list(sm: sem.Simulator, latest_epoch: int) -> bool:
-    updated = False
-    for sim_abstract_node in sm.sim_graph.sim_abstract_nodes:
-        if sim_abstract_node.type == tm.SimNetworkNodeType.NORMAL_ROUTER:
-            if isinstance(sim_abstract_node.actual_node, snrm.SimNormalRouter):
-                if len(sim_abstract_node.actual_node.scheduled_event_list) > 0:
-                    first_scheduled_event = sim_abstract_node.actual_node.scheduled_event_list[0]
-                    if latest_epoch >= first_scheduled_event.employed_epoch:
-                        sim_abstract_node.actual_node.scheduled_event_list.pop(0)
-                        sim_abstract_node.actual_node.corrupt_ratio_start = first_scheduled_event.corrupt_ratio_start
-                        sim_abstract_node.actual_node.corrupt_ratio_end = first_scheduled_event.corrupt_ratio_end
-                        sim_abstract_node.actual_node.corrupt_special_packet_ratio_start = first_scheduled_event.corrupt_special_packet_ratio_start
-                        sim_abstract_node.actual_node.corrupt_special_packet_ratio_end = first_scheduled_event.corrupt_special_packet_ratio_end
-                        updated = True
-    return updated
-
-
 def recalculate_score_and_find_best_path(sm: sem.Simulator) -> sppm.SimPath:
     for sim_path in sm.sim_graph.available_paths:
         sim_path.calculate_score()
     current_epoch_best_path = \
         sorted(sm.sim_graph.available_paths, key=lambda current_sim_path: current_sim_path.score)[0]
     return current_epoch_best_path
-
-
-def calculate_scaling_loss(sm: sem.Simulator, illegal_ratio: float) -> float:
-    if illegal_ratio > (1 - sm.simulator_params.minimum_delivery_ratio):
-        scaling_loss = 1.0
-    else:
-        scaling_loss = 0.0
-    return scaling_loss
 
 
 def calculate_rectified_loss(sm: sem.Simulator, illegal_ratio: float, link_explore_prob: float) -> float:

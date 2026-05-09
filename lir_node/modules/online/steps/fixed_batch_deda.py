@@ -85,28 +85,13 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator
     udp_other_client = uocm.UdpOtherClient(sm.client_detailed_info)
     udp_other_client.start()
     # --------------------------------------------------------------------------------------------------------------------------------------------
+
     # 进行发送 epoch, relied_epoch, 选择的路径的更新
     # --------------------------------------------------------------------------------------------------------------------------------------------
     sm.sim_graph.sending_epochs.append(sm.latest_sending_epoch)
     sm.latest_sending_epoch += 1
     sm.sim_graph.relied_acks_epochs.append(sm.latest_acks_epoch)
     sm.sim_graph.selected_paths.append(current_epoch_selected_path)
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    # 按照 scheduled_list 进行更新
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    updated = osm.update_according_to_scheduled_list(sm, sm.latest_sending_epoch)
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    # 进行路径的损失值的更新
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    if updated or (sm.best_path is None):
-        sm.best_path = osm.recalculate_score_and_find_best_path(sm)
-    sm.sim_graph.best_paths.append(sm.best_path)
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    # 如果当前选择的路径和 best path 不一致的话, 那么 regret 进行 + 1 的操作
-    # --------------------------------------------------------------------------------------------------------------------------------------------
-    current_regret = current_epoch_selected_path.calculate_regret(sm.simulator_params.minimum_delivery_ratio)
-    sm.sim_graph.accumulate_current_regret += current_regret
-    sm.sim_graph.regret_list.append(sm.sim_graph.accumulate_current_regret / float(sm.latest_sending_epoch))
     # --------------------------------------------------------------------------------------------------------------------------------------------
     # 完成之后再检查一次
     return []
