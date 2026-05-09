@@ -28,9 +28,6 @@ def forward_real_packets_or_retrieve_acks_for_dynamic_batch(sm: sem.Simulator) -
         sm.sim_graph.reach_timeout_time_elapsed_list.append(reach_timeout_time_elapsed)
         sm.sim_graph.epoch_sampling_packets_list.append(number_of_sampling_packets)
         sm.sim_graph.epoch_unsampling_packets_list.append(number_of_unsamping_packets)
-        # 进行当前 epoch 的打印
-        # print(f"latest ack epoch: {sm.latest_acks_epoch}, currnet_epoch_sent_packets: {current_epoch_sent_packets}, received ack counts: {received_ack_counts}, expected ack counts: {expected_ack_counts}", flush=True)
-        # 进行结果的返回
         return received_ack_counts, expected_ack_counts
     # 3. 如果没有成功返回, 那么进行数据包的发送 (不用进行路径的下发, 沿之前的路径进行发送即可)
     sm.client_detailed_info.batch_size = sm.simulator_params.mini_batch_size
@@ -49,13 +46,9 @@ def start_dynamic_batch(sm: sem.Simulator):
 
     # 2. 进入循环
     while True:
-        if sm.simulator_params.rate_adjust_mode == tm.RateAdjustMode.EPOCH:
-            if sm.latest_acks_epoch == sm.simulator_params.number_of_epochs:
-                break
-        else:
-            elapsed_ms = (time.time() - sm.sync_timestamp) * 1000
-            if elapsed_ms > sm.simulator_params.experiment_time_elapsed_ms:
-                break
+        elapsed_ms = (time.time() - sm.sync_timestamp) * 1000
+        if elapsed_ms > sm.simulator_params.experiment_time_elapsed_ms:
+            break
 
         if sm.retrieved_acks:
             # ----------------------- 根据更新后的模型进行路径的选择  -----------------------

@@ -6,6 +6,7 @@ from modules.online.entities.sim_path import SimPath
 from modules.online.types import types as tm
 from modules.online.entities import sim_graph as sgm
 from apps.user import client_detailed_info as cdim
+from queue import Queue
 
 # 初始化全局日志器 (你可以替换为你自定义的 logger)
 simulator_logger = logging.getLogger("ModuleSimulator")
@@ -22,7 +23,6 @@ class SimulatorParams:
     enable_dade_algorithm: bool = False  # 是否启用 dade 算法 (delay adaptive algorithm)
     enable_deda_algorithm: bool = False  # 是否启动 deda 算法 (delay and data adaptive algorithm)
     min_ack_for_rtt_estimation: int = 50
-    rate_adjust_mode: int = tm.RateAdjustMode.EPOCH
     experiment_time_elapsed_ms: int = 30 * 1000
 
 
@@ -47,6 +47,8 @@ class Simulator:
         self.sync_timestamp = 0
         self.scheduled_event_list = []
         self.packet_best_path_id = 1
+        self.check_thread = None
+        self.epoch_queue = Queue()
         # ----------------------------- 一般参数 -----------------------------
 
         # ----------------------------- fixed batch 相关参数 -----------------------------

@@ -228,7 +228,8 @@ def set_scheduled_malicious_params_core(data):
                                              corrupt_ratio_end,
                                              corrupt_special_packet_ratio_start, corrupt_special_packet_ratio_end)
         print(f"set scheduled malicious params for normal router: {corrupt_ratio_start},{corrupt_ratio_end},"
-              f"{corrupt_special_packet_ratio_start},{corrupt_special_packet_ratio_end}", flush=True)
+              f"{corrupt_special_packet_ratio_start},{corrupt_special_packet_ratio_end} "
+              f"at employed_epoch_or_timestamp_ms = {employed_epoch_or_timestamp_ms}", flush=True)
 
     elif 1 == elm.env_loader.node_id:
         normal_router = sm.simulator_instance.sim_graph.sim_abstract_nodes_mapping[
@@ -258,16 +259,14 @@ def set_scheduled_malicious_params():
 
 @flask_instance.route("/startSync", methods=["POST"])
 def start_sync():
-    data = json.loads(request.data)
-    start_sync_core(data)
+    start_sync_core()
     response_data = {
         "status": "success"
     }
     return jrm.get_json_response_from_map(response_data, 200)
 
 
-def start_sync_core(data):
-    sm.simulator_instance.simulator_params.rate_adjust_mode = data["rate_adjust_mode"]
+def start_sync_core():
     sm.simulator_instance.sync_timestamp = time.time()
-    check_thread = CheckThread()
-    check_thread.start()
+    sm.simulator_instance.check_thread = CheckThread()
+    sm.simulator_instance.check_thread.start()

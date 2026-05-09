@@ -3,7 +3,6 @@ from modules.online.entities.retrieved_feedback import RetrievedFeedback
 from modules.online.steps import simulator as sem
 from modules.online.entities import sim_path as sppm
 from typing import List
-from modules.online.types.types import RateAdjustMode
 from tools import count as cm
 from apps.network.lir import udp_other_client as uocm
 from modules.online.steps import osmd_step as osm
@@ -81,8 +80,8 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
     # --------------------------------------------------------------------------------------------------------------------------------------------
     # 进行发送 epoch, relied_epoch, 选择的路径的更新
     # --------------------------------------------------------------------------------------------------------------------------------------------
-    sm.sim_graph.sending_epochs.append(sm.latest_sending_epoch)
     sm.latest_sending_epoch += 1
+    sm.sim_graph.sending_epochs.append(sm.latest_sending_epoch)
     sm.sim_graph.relied_acks_epochs.append(sm.latest_acks_epoch)
     sm.sim_graph.selected_paths.append(current_epoch_selected_path)
     # --------------------------------------------------------------------------------------------------------------------------------------------
@@ -96,13 +95,9 @@ def start_fixed_batch_normal(sm: sem.Simulator):
 
     # 2. 进入循环
     while True:
-        if sm.simulator_params.rate_adjust_mode == RateAdjustMode.EPOCH:
-            if sm.latest_acks_epoch == sm.simulator_params.number_of_epochs:
-                break
-        else:
-            elapsed_ms = (time.time() - sm.sync_timestamp) * 1000
-            if elapsed_ms > sm.simulator_params.experiment_time_elapsed_ms:
-                break
+        elapsed_ms = (time.time() - sm.sync_timestamp) * 1000
+        if elapsed_ms > sm.simulator_params.experiment_time_elapsed_ms:
+            break
 
         # 2.2 判断是否取回了 ack (case 1: 如果取回了 ack, 模型的概率变化了, 需要进行重新的选路) (case 2: 如果没有取回 ack, 模型的概率没有变化依然选之前的路径)
         if sm.retrieved_acks:

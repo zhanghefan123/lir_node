@@ -11,6 +11,7 @@ class CheckThread(threading.Thread):
         super().__init__()
 
     def run(self):
+        print("start timestamp level thread", flush=True)
         while True:
             time_elapsed = (time.time() - sm.simulator_instance.sync_timestamp) * 1000
             for scheduled_event in sm.simulator_instance.scheduled_event_list:
@@ -29,10 +30,8 @@ class CheckThread(threading.Thread):
                                 flush=True)
                     else:  # 如果不是源, 那么就进行设置
                         kcm.kernel_config_loader.set_malicious_params_from_event(scheduled_event)
-                        print(
-                            f"set malicious params for normal router {scheduled_event} at timestamp: {scheduled_event.employed_epoch_or_timestamp_ms}",
-                            flush=True)
+                        print(f"set malicious params for normal router {elm.env_loader.node_id} at timestamp: {scheduled_event.employed_epoch_or_timestamp_ms}", flush=True)
             if len(sm.simulator_instance.scheduled_event_list) == 0:
-                print("break here", flush=True)
+                print("end timestamp level thread", flush=True)
                 break
             time.sleep(1 / 1000.0)  # sleep for 10 ms
