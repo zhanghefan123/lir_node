@@ -430,7 +430,7 @@ class KernelConfigurator:
             f"{scheduled_event.corrupt_ratio_start},{scheduled_event.corrupt_ratio_end},"
             f"{scheduled_event.corrupt_special_packet_ratio_start},{scheduled_event.corrupt_special_packet_ratio_end}")
         self.netlink_client.send_netlink_data(final_string,
-                                              tm.NetlinkMessageType.CMD_SET_MALICIOUS_PARAMS_FOR_NORMAL_ROUTER)
+                                              tm.NetlinkMessageType.CMD_SET_MALICIOUS_PARAMS)
 
     def print_lir_routes_and_interfaces(self):
         """

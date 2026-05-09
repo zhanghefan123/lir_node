@@ -227,11 +227,11 @@ def set_scheduled_malicious_params_core(data):
         scheduled_event = sem.ScheduledEvent(set_node_id, None, employed_epoch_or_timestamp_ms, corrupt_ratio_start,
                                              corrupt_ratio_end,
                                              corrupt_special_packet_ratio_start, corrupt_special_packet_ratio_end)
-        kcm.kernel_config_loader.set_scheduled_malicious_params(employed_epoch_or_timestamp_ms,
-                                                                corrupt_ratio_start,
-                                                                corrupt_ratio_end,
-                                                                corrupt_special_packet_ratio_start,
-                                                                corrupt_special_packet_ratio_end)
+        # kcm.kernel_config_loader.set_scheduled_malicious_params(employed_epoch_or_timestamp_ms,
+        #                                                         corrupt_ratio_start,
+        #                                                         corrupt_ratio_end,
+        #                                                         corrupt_special_packet_ratio_start,
+        #                                                         corrupt_special_packet_ratio_end)
         print(f"set scheduled malicious params for normal router: {corrupt_ratio_start},{corrupt_ratio_end},"
               f"{corrupt_special_packet_ratio_start},{corrupt_special_packet_ratio_end}", flush=True)
 

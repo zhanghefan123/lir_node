@@ -22,13 +22,13 @@ class CheckThread(threading.Thread):
                         if sm.simulator_instance.packet_best_path_id == best_path.path_id:
                             pass
                         else:
-                            # kcm.kernel_config_loader.set_best_path_id_for_source(best_path_id=best_path.path_id)
+                            kcm.kernel_config_loader.set_best_path_id_for_source(best_path_id=best_path.path_id)
                             sm.simulator_instance.packet_best_path_id = best_path.path_id
                             print(
                                 f"set best path for source = {sm.simulator_instance.packet_best_path_id} at timestamp: {scheduled_event.employed_epoch_or_timestamp_ms}",
                                 flush=True)
                     else:  # 如果不是源, 那么就进行设置
-                        # kcm.kernel_config_loader.set_malicious_params_from_event(scheduled_event)
+                        kcm.kernel_config_loader.set_malicious_params_from_event(scheduled_event)
                         print(
                             f"set malicious params for normal router {scheduled_event} at timestamp: {scheduled_event.employed_epoch_or_timestamp_ms}",
                             flush=True)
