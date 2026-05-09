@@ -417,10 +417,6 @@ class KernelConfigurator:
         final_string = f"{value}"
         self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_MIN_ACK_FOR_RTT_ESTIMATION)
 
-    def start_sec_path_mab_synchronize(self, rate_adjust_mode: int):
-        self.netlink_client.send_netlink_data(f"{rate_adjust_mode}",
-                                              tm.NetlinkMessageType.CMD_START_SEC_PATH_MAB_SYNCHRONIZE)
-
     def set_best_path_id_for_source(self, best_path_id: int):
         final_string = f"{best_path_id}"
         self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_BEST_PATH_ID_FOR_SOURCE)

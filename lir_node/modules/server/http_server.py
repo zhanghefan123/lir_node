@@ -227,11 +227,6 @@ def set_scheduled_malicious_params_core(data):
         scheduled_event = sem.ScheduledEvent(set_node_id, None, employed_epoch_or_timestamp_ms, corrupt_ratio_start,
                                              corrupt_ratio_end,
                                              corrupt_special_packet_ratio_start, corrupt_special_packet_ratio_end)
-        # kcm.kernel_config_loader.set_scheduled_malicious_params(employed_epoch_or_timestamp_ms,
-        #                                                         corrupt_ratio_start,
-        #                                                         corrupt_ratio_end,
-        #                                                         corrupt_special_packet_ratio_start,
-        #                                                         corrupt_special_packet_ratio_end)
         print(f"set scheduled malicious params for normal router: {corrupt_ratio_start},{corrupt_ratio_end},"
               f"{corrupt_special_packet_ratio_start},{corrupt_special_packet_ratio_end}", flush=True)
 
@@ -274,6 +269,5 @@ def start_sync():
 def start_sync_core(data):
     sm.simulator_instance.simulator_params.rate_adjust_mode = data["rate_adjust_mode"]
     sm.simulator_instance.sync_timestamp = time.time()
-    kcm.kernel_config_loader.start_sec_path_mab_synchronize(sm.simulator_instance.simulator_params.rate_adjust_mode)
     check_thread = CheckThread()
     check_thread.start()

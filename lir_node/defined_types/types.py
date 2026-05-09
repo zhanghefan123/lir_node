@@ -337,8 +337,7 @@ class NetlinkMessageType:
     CMD_RETRIEVE_KERNEL_INFORMATION = 24  # 获取内核返回的 counters 和  acks
     CMD_SET_SCHDULED_MALICIOUS_PARAMS = 25  # 进行恶意参数改变的事件的追加
     CMD_SET_MIN_ACK_FOR_RTT_ESTIMATION = 26  # 设置对于 RTT 的估计
-    CMD_START_SEC_PATH_MAB_SYNCHRONIZE = 27  # 同步
-    CMD_SET_BEST_PATH_ID_FOR_SOURCE = 28  # 向源设置最佳路径
+    CMD_SET_BEST_PATH_ID_FOR_SOURCE = 27  # 向源设置最佳路径
 
     # 字符串 -> 数字 映射
     STR_TO_TYPE_MAP = {
