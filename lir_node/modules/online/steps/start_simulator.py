@@ -7,10 +7,7 @@ from apps.user import client_detailed_info as cdim
 
 
 def start(sm: sem.Simulator):
-    if sm.running_type == tm.RunningType.VirtualTest:
-        tem.start_test(sm)
-    else:
-        rm.start_real(sm)
+    rm.start_real(sm)
 
 
 def init_by_http(simulator_params: sem.SimulatorParams, client_detailed_info: cdim.ClientDetailedInfo,
@@ -20,7 +17,6 @@ def init_by_http(simulator_params: sem.SimulatorParams, client_detailed_info: cd
         simulator_params=simulator_params,
         simulation_graph_path=simulation_graph_path,
         client_detailed_info=client_detailed_info,
-        running_type=tm.RunningType.RealTest,
     )
     # simulator 的初始化
     ism.initialize(sem.simulator_instance)

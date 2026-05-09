@@ -16,7 +16,7 @@ def init_graph_from_configuration_file(sm: sem.Simulator):
         print("already initialized graph from configuration file, skip this step")
         return
 
-    sm.sim_graph = sgm.SimGraph(sm.running_type)  # 假设导入了 SimGraph 类
+    sm.sim_graph = sgm.SimGraph()  # 假设导入了 SimGraph 类
 
     try:
         # step1: load graph params

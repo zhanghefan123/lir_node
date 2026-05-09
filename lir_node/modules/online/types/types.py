@@ -33,3 +33,7 @@ class RunningType:
 class RectifiedLossCalculateType:
     TYPE_DELIVERY_RATIO = 0  # 使用传统模式
     TYPE_SCALING = 1  # 使用放缩方式
+
+class RateAdjustMode:
+    EPOCH = 0
+    TIMESTAMP = 1

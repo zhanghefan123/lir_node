@@ -15,9 +15,7 @@ from modules.config import interface_loader as ilm
 
 
 class SimGraph:
-    def __init__(self, running_type: str):
-        # 记录运行模式
-        self.running_type = running_type
+    def __init__(self):
 
         # 使用 networkx 的有向图代替 gonum 的 simple.DirectedGraph
         self.real_graph: nx.DiGraph = nx.DiGraph()

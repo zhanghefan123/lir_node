@@ -49,8 +49,13 @@ def start_dynamic_batch(sm: sem.Simulator):
 
     # 2. 进入循环
     while True:
-        if sm.latest_acks_epoch == sm.simulator_params.number_of_epochs:
-            break
+        if sm.simulator_params.rate_adjust_mode == tm.RateAdjustMode.EPOCH:
+            if sm.latest_acks_epoch == sm.simulator_params.number_of_epochs:
+                break
+        else:
+            elapsed_ms = (time.time() - sm.sync_timestamp) * 1000
+            if elapsed_ms > sm.simulator_params.experiment_time_elapsed_ms:
+                break
 
         if sm.retrieved_acks:
             # ----------------------- 根据更新后的模型进行路径的选择  -----------------------
@@ -89,23 +94,17 @@ def start_dynamic_batch(sm: sem.Simulator):
             current_epoch_selected_path = sm.latest_selected_path
 
         # 2.4.2 发送一批数据包
-        if sm.running_type == tm.RunningType.RealTest:
-            received_ack_counts, expected_ack_counts = forward_real_packets_or_retrieve_acks_for_dynamic_batch(sm)
-            if len(received_ack_counts) == 0:
-                sm.retrieved_acks = False
-                continue
-            else:
-                sm.retrieved_acks = True
+        received_ack_counts, expected_ack_counts = forward_real_packets_or_retrieve_acks_for_dynamic_batch(sm)
+        if len(received_ack_counts) == 0:
+            sm.retrieved_acks = False
+            continue
         else:
-            raise ValueError("unsupported real or virtual type: %d", sm.running_type)
+            sm.retrieved_acks = True
 
         stat_update_model_time = datetime.datetime.now()
 
         # 2.4.3 进行当前的计算的路径的更新
-        if sm.running_type == tm.RunningType.RealTest:
-            current_calculated_path = current_epoch_selected_path
-        else:
-            raise ValueError("unsupported real or virtual type: %d", sm.running_type)
+        current_calculated_path = current_epoch_selected_path
 
         # 2.4.4 计算传输失败率
         directed_abs_links, directed_abs_links_mapping = current_calculated_path.get_directed_abs_links()

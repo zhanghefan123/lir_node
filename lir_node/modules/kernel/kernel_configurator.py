@@ -1,6 +1,4 @@
 import os
-from multiprocessing.managers import Value
-
 from modules.config.env_loader import env_loader
 from modules.online.entities import sim_path as sppm
 from modules.netlink import netlink_client as ncm
@@ -335,14 +333,15 @@ class KernelConfigurator:
 
     def retrieve_kernel_information_for_fixed_batch(self) -> List[rfm.RetrievedFeedback]:
         retrieved_feedbacks = []
-        received_string = self.netlink_client.send_netlink_data("", tm.NetlinkMessageType.CMD_RETRIEVE_KERNEL_INFORMATION)
+        received_string = self.netlink_client.send_netlink_data("",
+                                                                tm.NetlinkMessageType.CMD_RETRIEVE_KERNEL_INFORMATION)
         if received_string.startswith("Err:"):
             return retrieved_feedbacks
         else:
             feedbacks_in_str = list(received_string.split(","))
             # print(f"feedbacks in str = {feedbacks_in_str}", flush=True)
             number_of_feedbacks = int(feedbacks_in_str.pop(0))
-            feedbacks_in_str.pop(len(feedbacks_in_str)-1)
+            feedbacks_in_str.pop(len(feedbacks_in_str) - 1)
 
             for i in range(number_of_feedbacks):
                 retrieved_ack_counts = []
@@ -371,40 +370,13 @@ class KernelConfigurator:
                                                                          expected_ack_counts=expected_ack_counts))
                         break
                     index += 1
-                feedbacks_in_str = feedbacks_in_str[3+number_of_sample_nodes*2:]
+                feedbacks_in_str = feedbacks_in_str[3 + number_of_sample_nodes * 2:]
             # 把 feedback 全部打印出来
             return retrieved_feedbacks
 
-    # def original_retrieve_kernel_information_for_fixed_batch(self) -> (int, int, List[int], List[int], bool):
-    #     """
-    #     向源节点进行 counters 和 acks 的返回
-    #     :return:
-    #     """
-    #     final_string = f""
-    #     received_string = self.netlink_client.send_netlink_data(final_string,
-    #                                                             tm.NetlinkMessageType.CMD_RETRIEVE_KERNEL_INFORMATION)
-    #     received_string = str(received_string)
-    #     if received_string.startswith("Err:"):
-    #         return -1, 0, [], [], False
-    #     else:
-    #         epoch_id_and_acks_in_str = received_string.split(",")
-    #         received_acks = []
-    #         expected_acks = []
-    #         epoch_id = -1
-    #         sending_time_elapsed = 0
-    #         for index in range(len(epoch_id_and_acks_in_str)):
-    #             if index == 0:
-    #                 epoch_id = int(epoch_id_and_acks_in_str[index])
-    #             elif index == 1:
-    #                 sending_time_elapsed = int(epoch_id_and_acks_in_str[index])
-    #             else:
-    #                 if index % 2 == 0:
-    #                     received_acks.append(int(epoch_id_and_acks_in_str[index]))
-    #                 else:
-    #                     expected_acks.append(int(epoch_id_and_acks_in_str[index]))
-    #         # print(f"retrieved epoch: {epoch_id} received_acks: {received_acks} expected_acks: {expected_acks}", flush=True)
-    #         return epoch_id, sending_time_elapsed, received_acks, expected_acks, True
-        
+    def start_sec_path_mab_synchronize(self, rate_adjust_mode: int):
+        self.netlink_client.send_netlink_data(f"{rate_adjust_mode}", tm.NetlinkMessageType.CMD_START_SEC_PATH_MAB_SYNCHRONIZE)
+
     def retrieve_kernel_information_for_dynamic_batch(self) -> (int, int, int, int, int, List[int], List[int], bool):
         final_string = f""
         received_string = self.netlink_client.send_netlink_data(final_string,

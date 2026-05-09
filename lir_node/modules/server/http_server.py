@@ -16,6 +16,7 @@ from modules.online.types import types as tm
 from modules.online.steps import simulator as sm
 from modules.online.steps import start_simulator as ssm
 from defined_types import types as dtm
+import time
 
 flask_instance = Flask(__name__)
 
@@ -122,7 +123,7 @@ def init_osmd_core(data):
     simulator_params.enable_dade_algorithm = data["enable_dade_algorithm"]
     simulator_params.enable_deda_algorithm = data["enable_deda_algorithm"]
     simulator_params.min_ack_for_rtt_estimation = data["min_ack_for_rtt_estimation"]
-    simulator_params.simulation_strategy = tm.SimStrategy.PER_PACKET_ACK
+    simulator_params.experiment_time_elapsed_ms = data["experiment_time_elapsed_ms"]
 
     # 进行 client detailed info 的设置
     client_detailed_info = ClientDetailedInfo()
@@ -252,3 +253,21 @@ def set_scheduled_malicious_params():
         "status": "success"
     }
     return jrm.get_json_response_from_map(response_data, 200)
+
+
+@flask_instance.route("/startSync", methods=["POST"])
+def start_sync():
+    data = json.loads(request.data)
+    raw = request.get_data(as_text=True)
+    print(repr(raw))  # 若看到 'null' 或 'null\n'，loads 后就是 None
+    start_sync_core(data)
+    response_data = {
+        "status": "success"
+    }
+    return jrm.get_json_response_from_map(response_data, 200)
+
+
+def start_sync_core(data):
+    sm.simulator_instance.simulator_params.rate_adjust_mode = data["rate_adjust_mode"]
+    sm.simulator_instance.sync_timestamp = time.time()
+    kcm.kernel_config_loader.start_sec_path_mab_synchronize(sm.simulator_instance.simulator_params.rate_adjust_mode)

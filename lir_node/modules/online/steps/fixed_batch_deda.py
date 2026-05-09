@@ -7,12 +7,14 @@ from apps.network.lir import udp_other_client as uocm
 from modules.online.steps import osmd_step as osm
 import time
 from modules.kernel import kernel_configurator as kcm
+from modules.online.types import types as tm
 import datetime
 import math
 
 
 def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator,
-                                                          current_epoch_selected_path: sppm.SimPath) -> List[RetrievedFeedback]:
+                                                               current_epoch_selected_path: sppm.SimPath) -> List[
+    RetrievedFeedback]:
     """
     进行真实的数据包的转发
     :return:
@@ -28,7 +30,8 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator
                 # 进行状态的更新
                 sm.latest_acks_epoch = retrieved_feedback.epoch_id
                 sm.sim_graph.sending_elapsed_list.append(retrieved_feedback.sending_time_elapsed)
-                sm.sim_graph.packet_sending_rate.append(float(sm.client_detailed_info.batch_size) / (retrieved_feedback.sending_time_elapsed / 1000 / 1000))
+                sm.sim_graph.packet_sending_rate.append(
+                    float(sm.client_detailed_info.batch_size) / (retrieved_feedback.sending_time_elapsed / 1000 / 1000))
                 sm.sim_graph.retrieved_timestamp_list.append(time.time())
             return retrieved_feedbacks
 
@@ -53,7 +56,8 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator
             delivery_ratio_list.append((1 - simDirectedPvLink.illegal_ratios[-1]))
 
     # 进行返回
-    if (sm.latest_selected_path is None) or (sm.latest_selected_path.description != current_epoch_selected_path.description):
+    if (sm.latest_selected_path is None) or (
+            sm.latest_selected_path.description != current_epoch_selected_path.description):
         # 获取批次大小
         batch_size = sm.simulator_params.number_of_pkts_per_link * (
                 len(current_epoch_selected_path.pv_routers) + 1)
@@ -114,8 +118,13 @@ def start_fixed_batch_deda(sm: sem.Simulator):
 
     # 2. 进入循环
     while True:
-        if sm.latest_sending_epoch == sm.simulator_params.number_of_epochs:
-            break
+        if sm.simulator_params.rate_adjust_mode == tm.RateAdjustMode.EPOCH:
+            if sm.latest_acks_epoch == sm.simulator_params.number_of_epochs:
+                break
+        else:
+            elapsed_ms = (time.time() - sm.sync_timestamp) * 1000
+            if elapsed_ms > sm.simulator_params.experiment_time_elapsed_ms:
+                break
 
         # 2.2 判断是否取回了 ack (case 1: 如果取回了 ack, 模型的概率变化了, 需要进行重新的选路) (case 2: 如果没有取回 ack, 模型的概率没有变化依然选之前的路径)
         if sm.retrieved_acks:
@@ -129,7 +138,8 @@ def start_fixed_batch_deda(sm: sem.Simulator):
             current_epoch_selected_path = sm.latest_selected_path
 
         # 2.3 case1: 进行数据包的发送 / case2: 进行一系列 ack 的取回
-        retrieved_feedbacks = forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm, current_epoch_selected_path)
+        retrieved_feedbacks = forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm,
+                                                                                         current_epoch_selected_path)
         if len(retrieved_feedbacks) == 0:
             sm.retrieved_acks = False  # 如果只是进行数据包的发送, 那么 continue, 模型以及路径不变
             continue
@@ -143,12 +153,14 @@ def start_fixed_batch_deda(sm: sem.Simulator):
         for retrieved_feedback in retrieved_feedbacks:
             gap = sm.latest_sending_epoch - retrieved_feedback.epoch_id  # 进行 gap 的计算
             sm.gap_list.append(gap)  # 进行 gap_list 的更新
-            current_calculated_path = retrieved_feedback.retrieved_epoch_selected_path   # 设置当前计算的路径, 即 retrieved_feedback 对应的那条路径
+            current_calculated_path = retrieved_feedback.retrieved_epoch_selected_path  # 设置当前计算的路径, 即 retrieved_feedback 对应的那条路径
             directed_abs_links, directed_abs_links_mapping = current_calculated_path.get_directed_abs_links()  # 计算传输失败率
             # 进行所有的反馈的遍历, 从而计算出所选路径的, 每条链路的数据包破坏率
             for index in range(len(retrieved_feedback.retrieved_ack_counts)):
                 if index == 0:
-                    estimated_legal_ratio = min(float(retrieved_feedback.retrieved_ack_counts[index] / retrieved_feedback.expected_ack_counts[index]), 1.0)
+                    estimated_legal_ratio = min(float(
+                        retrieved_feedback.retrieved_ack_counts[index] / retrieved_feedback.expected_ack_counts[index]),
+                        1.0)
                 else:
                     delivery_ratio_before = float(retrieved_feedback.retrieved_ack_counts[index - 1]) / float(
                         retrieved_feedback.expected_ack_counts[index - 1])  # 84 / 100
@@ -172,12 +184,16 @@ def start_fixed_batch_deda(sm: sem.Simulator):
                 if directed_pv_link.description in directed_abs_links_mapping:
                     illegal_ratio = directed_pv_link.illegal_ratios[-1]
                     # -------------- deda modified recitified loss calculation --------------
-                    rectified_loss = osm.calculate_rectified_loss(sm, illegal_ratio, directed_pv_link.sending_epoch_probabilities[retrieved_feedback.epoch_id])
+                    rectified_loss = osm.calculate_rectified_loss(sm, illegal_ratio,
+                                                                  directed_pv_link.sending_epoch_probabilities[
+                                                                      retrieved_feedback.epoch_id])
                     # -------------- deda modified recitified loss calculation --------------
                     directed_pv_link.rectified_losses.append(rectified_loss)
                     # --------------------- deda 流程 ---------------------
                     directed_pv_link.accumulated_loss_z += rectified_loss
-                    directed_pv_link.weighted_accumulated_loss_m += rectified_loss * directed_pv_link.sending_epoch_probabilities[retrieved_feedback.epoch_id]
+                    directed_pv_link.weighted_accumulated_loss_m += rectified_loss * \
+                                                                    directed_pv_link.sending_epoch_probabilities[
+                                                                        retrieved_feedback.epoch_id]
                     # --------------------- deda 流程 ---------------------
                 else:
                     rectified_loss = 0.0
@@ -201,8 +217,10 @@ def start_fixed_batch_deda(sm: sem.Simulator):
                 z_value_larger = directed_pv_link.accumulated_loss_z_list[-1]
                 z_value_smaller = directed_pv_link.accumulated_loss_z_list[retrieved_feedback.epoch_id]
 
-                first_item = directed_pv_link.rectified_losses[-(index+1)] * (m_value_larger - m_value_smaller)
-                second_item = directed_pv_link.rectified_losses[-(index+1)] * directed_pv_link.sending_epoch_probabilities[retrieved_feedback.epoch_id] * (z_value_larger - z_value_smaller)
+                first_item = directed_pv_link.rectified_losses[-(index + 1)] * (m_value_larger - m_value_smaller)
+                second_item = directed_pv_link.rectified_losses[-(index + 1)] * \
+                              directed_pv_link.sending_epoch_probabilities[retrieved_feedback.epoch_id] * (
+                                      z_value_larger - z_value_smaller)
                 backward_loss += first_item
                 backward_loss += second_item
         sm.backward_loss_list.append(backward_loss)
@@ -212,12 +230,14 @@ def start_fixed_batch_deda(sm: sem.Simulator):
         windowed_max_gap = sem.get_windowed_max_gap(sm)
 
         # 利用已经更新好了的 acc_backward_loss 进行学习率的更新
-        sm.current_learning_rate = 1.0 / (windowed_max_gap / math.log(sm.constant_K) + math.sqrt(windowed_backward_acc_loss/math.log(sm.constant_K)))
+        sm.current_learning_rate = 1.0 / (windowed_max_gap / math.log(sm.constant_K) + math.sqrt(
+            windowed_backward_acc_loss / math.log(sm.constant_K)))
         sm.learning_rate_list.append(sm.current_learning_rate)
 
         # 更新各个节点的权重 (按照 z 值进行更新)
         for directed_pv_link in sm.sim_graph.sim_directed_abs_links:
-            current_epoch_weight = directed_pv_link.explore_probabilities[-1] * math.exp(-sm.current_learning_rate * directed_pv_link.accumulated_loss_z_list[-1])
+            current_epoch_weight = directed_pv_link.explore_probabilities[-1] * math.exp(
+                -sm.current_learning_rate * directed_pv_link.accumulated_loss_z_list[-1])
             directed_pv_link.weights.append(current_epoch_weight)
 
         # 将权重重新进行投影

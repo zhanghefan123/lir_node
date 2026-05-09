@@ -19,23 +19,22 @@ class SimulatorParams:
     mini_batch_size: int = -1  # 在 dynamic 发送的时候, 每个小 batch 的 size
     learning_rate: float = -1  # 学习率，控制每次更新权重的幅度
     minimum_delivery_ratio: float = -1  # 最小的交付率
-    simulation_strategy: str = ""  # 进行模拟的模式 (对应 types.SimStrategy)
     enable_dade_algorithm: bool = False  # 是否启用 dade 算法 (delay adaptive algorithm)
     enable_deda_algorithm: bool = False  # 是否启动 deda 算法 (delay and data adaptive algorithm)
     min_ack_for_rtt_estimation: int = 50
+    rate_adjust_mode: int = tm.RateAdjustMode.EPOCH
+    experiment_time_elapsed_ms: int = 30 * 1000
 
 
 class Simulator:
-    def __init__(self, simulator_params: SimulatorParams,
+    def __init__(self, simulator_params: Optional[SimulatorParams],
                  simulation_graph_path: str,
-                 client_detailed_info: Optional[cdim.ClientDetailedInfo],
-                 running_type: str):
+                 client_detailed_info: Optional[cdim.ClientDetailedInfo]):
         """
         Simulator 的构造方法，对应 Go 中的 NewSimulator
         :param simulator_params: Simulator 相关的参数对象
         :param simulation_graph_path: 拓扑图配置文件的路径
         :param client_detailed_info: 实际用来传输的设置
-        :param running_type: 运行的类型
         """
 
         # ----------------------------- 一般参数 -----------------------------
@@ -44,8 +43,8 @@ class Simulator:
         self.simulator_params: SimulatorParams = simulator_params  # 模拟图的配置参数
         self.client_detailed_info: cdim.ClientDetailedInfo = client_detailed_info  # 发送udp客户端的信息
         self.simulator_init_steps: Set[str] = set()  # Go 中的 map[string]struct{} 在 Python 中是标准的 Set (集合)
-        self.running_type: str = running_type  # 运行的类型
         self.rectified_loss_calculating_type: str = tm.RectifiedLossCalculateType.TYPE_SCALING  # loss 计算方式
+        self.sync_timestamp = 0
         # ----------------------------- 一般参数 -----------------------------
 
         # ----------------------------- fixed batch 相关参数 -----------------------------
@@ -61,8 +60,11 @@ class Simulator:
         # ----------------------------- fixed/dynamic batch 相关参数 -----------------------------
 
         # ----------------------------- deda 相关参数 -----------------------------
-        self.constant_K: int = 4
-        self.current_learning_rate: float = self.simulator_params.learning_rate
+        if self.simulator_params is not None:
+            self.current_learning_rate: float = self.simulator_params.learning_rate
+        else:
+            self.current_learning_rate = 0.2
+        self.constant_K: int = 6
         self.gap_list: List[int] = []  # 统计实际收到的反馈的延迟情况
         self.backward_loss_list: List[float] = []
         self.learning_rate_list: List[float] = []
@@ -71,7 +73,7 @@ class Simulator:
 
 
 # 全局 simulator
-simulator_instance: Optional[Simulator] = None
+simulator_instance: Optional[Simulator] = Simulator(SimulatorParams(), "", None)
 
 
 def get_windowed_backward_acc_loss(sm: Simulator) -> float:
