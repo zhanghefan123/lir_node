@@ -13,4 +13,5 @@ def start_real(sm: sem.Simulator):
         dbm.init_dynamic_batch(sm)
         dbm.start_dynamic_batch(sm)
     stam.get_statistics(sm, f"/configuration/{elm.env_loader.container_name}/output")
+    stam.get_per_packet_info(sm, f"/configuration/{elm.env_loader.container_name}/output")
 

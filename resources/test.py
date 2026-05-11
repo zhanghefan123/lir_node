@@ -10,3 +10,5 @@ if __name__ == '__main__':
     res = cm.calc_cascade_sample_counts(TOTAL, link_rates)
 
     print(res)
+
+    print("".split(","))

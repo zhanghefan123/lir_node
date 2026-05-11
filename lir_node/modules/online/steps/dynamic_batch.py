@@ -1,7 +1,6 @@
 from typing import List
 from apps.network.lir import udp_other_client as uocm
 from modules.online.steps import simulator as sem
-from modules.online.types import types as tm
 from modules.online.steps import osmd_step as osm
 import datetime
 import math

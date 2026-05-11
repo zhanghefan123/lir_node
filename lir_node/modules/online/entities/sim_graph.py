@@ -45,6 +45,8 @@ class SimGraph:
         self.reach_timeout_time_elapsed_list: List[int] = []  # 发送的时间的消耗
         self.retrieved_timestamp_list: List[float] = []  # 时间戳序列
         self.packet_sending_rate: List[float] = []
+        self.per_packet_selected_path: List[int] = []
+        self.per_packet_best_path: List[int] = []
         # ------------------------ fixed/dynamic batch 共享参数 ------------------------
 
         # ------------------------ fixed batch 独享运行相关参数 ------------------------

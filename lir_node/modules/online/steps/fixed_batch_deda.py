@@ -7,7 +7,6 @@ from apps.network.lir import udp_other_client as uocm
 from modules.online.steps import osmd_step as osm
 import time
 from modules.kernel import kernel_configurator as kcm
-from modules.online.types import types as tm
 import datetime
 import math
 

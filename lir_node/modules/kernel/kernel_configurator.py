@@ -250,7 +250,7 @@ class KernelConfigurator:
         else:
             raise ValueError("destinatio not end host")
         link_identifiers = len(current_epoch_selected_path.pv_routers) + 1
-        final_string = f"{source_id},{destination_id},{link_identifiers}"
+        final_string = f"{current_epoch_selected_path.path_id},{source_id},{destination_id},{link_identifiers}"
         # append link identifiers
         for interface in current_epoch_selected_path.interfaces:
             final_string += f",{interface.link_identifier}"
@@ -284,7 +284,7 @@ class KernelConfigurator:
         else:
             raise ValueError("destinatio not end host")
         link_identifiers = len(current_epoch_selected_path.pv_routers) + 1
-        final_string = f"{source_id},{destination_id},{link_identifiers}"
+        final_string = f"{current_epoch_selected_path.path_id},{source_id},{destination_id},{link_identifiers}"
         # append link identifiers
         for interface in current_epoch_selected_path.interfaces:
             final_string += f",{interface.link_identifier}"
@@ -427,6 +427,9 @@ class KernelConfigurator:
             f"{scheduled_event.corrupt_special_packet_ratio_start},{scheduled_event.corrupt_special_packet_ratio_end}")
         self.netlink_client.send_netlink_data(final_string,
                                               tm.NetlinkMessageType.CMD_SET_MALICIOUS_PARAMS)
+
+    def get_per_packet_information(self) -> str:
+        return self.netlink_client.send_netlink_data("", tm.NetlinkMessageType.CMD_RETRIEVE_PER_PACKET_INFO)
 
     def print_lir_routes_and_interfaces(self):
         """

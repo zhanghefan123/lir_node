@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from defined_types.types import SecPathMabType
 from modules.online.steps import simulator as sem
 from modules.config import env_loader as elm
+from modules.kernel import kernel_configurator as kcm
 
 
 @dataclass
@@ -39,6 +40,8 @@ def write_statistics_to_file(destination_dir: str, filename: str,
 
 
 def get_packet_sending_rate(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="packet_sending_rate",
@@ -49,6 +52,8 @@ def get_packet_sending_rate(sm: sem.Simulator, destination_dir: str):
 
 
 def get_sending_elapsed_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="sending_elapsed",
@@ -59,6 +64,8 @@ def get_sending_elapsed_list(sm: sem.Simulator, destination_dir: str):
 
 
 def get_epoch_unsampling_packets_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="epoch_unsampling_packets",
@@ -69,6 +76,8 @@ def get_epoch_unsampling_packets_list(sm: sem.Simulator, destination_dir: str):
 
 
 def get_epoch_sampling_packets_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="epoch_sampling_packets",
@@ -79,6 +88,8 @@ def get_epoch_sampling_packets_list(sm: sem.Simulator, destination_dir: str):
 
 
 def get_sending_timestamp_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="sending_timestamp_list",
@@ -89,6 +100,8 @@ def get_sending_timestamp_list(sm: sem.Simulator, destination_dir: str):
 
 
 def get_retrieved_timestamp_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="retrieved_timestamp_list",
@@ -99,6 +112,8 @@ def get_retrieved_timestamp_list(sm: sem.Simulator, destination_dir: str):
 
 
 def get_determine_path_time_elapsed(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="determine_path_time_elapsed",
@@ -109,6 +124,8 @@ def get_determine_path_time_elapsed(sm: sem.Simulator, destination_dir: str):
 
 
 def get_update_model_time_elapsed(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="update_model_time_elapsed",
@@ -119,6 +136,8 @@ def get_update_model_time_elapsed(sm: sem.Simulator, destination_dir: str):
 
 
 def get_collect_enough_ack_time_elapsed(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="collect_enough_ack_time_elapsed",
@@ -129,6 +148,8 @@ def get_collect_enough_ack_time_elapsed(sm: sem.Simulator, destination_dir: str)
 
 
 def get_reach_timeout_time_elapsed(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="reach_time_out_time_elapsed",
@@ -139,6 +160,8 @@ def get_reach_timeout_time_elapsed(sm: sem.Simulator, destination_dir: str):
 
 
 def get_sending_epochs(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="sending_epochs",
@@ -149,6 +172,8 @@ def get_sending_epochs(sm: sem.Simulator, destination_dir: str):
 
 
 def get_relied_acks_epoch(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="relied_acks_epoch",
@@ -159,6 +184,8 @@ def get_relied_acks_epoch(sm: sem.Simulator, destination_dir: str):
 
 
 def get_pv_links_illegal_ratios(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     for abs_link in sm.sim_graph.sim_directed_abs_links:
         desc_and_data = DescriptionAndData(
@@ -170,6 +197,8 @@ def get_pv_links_illegal_ratios(sm: sem.Simulator, destination_dir: str):
 
 
 def get_pv_links_weights(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     for pv_link in sm.sim_graph.sim_directed_abs_links:
         desc_and_data = DescriptionAndData(
@@ -181,6 +210,8 @@ def get_pv_links_weights(sm: sem.Simulator, destination_dir: str):
 
 
 def get_pv_links_explore_probabilities(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     for pv_link in sm.sim_graph.sim_directed_abs_links:
         desc_and_data = DescriptionAndData(
@@ -192,6 +223,8 @@ def get_pv_links_explore_probabilities(sm: sem.Simulator, destination_dir: str):
 
 
 def get_selected_path(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     # 使用 Python 的列表推导式直接提取并拼接 PathId
     path_ids = [str(sim_path.path_id) for sim_path in sm.sim_graph.selected_paths]
     final_string = ",".join(path_ids)
@@ -208,6 +241,8 @@ def get_selected_path(sm: sem.Simulator, destination_dir: str):
 
 
 def get_sending_epoch_probabilities(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     for pv_link in sm.sim_graph.sim_directed_abs_links:
         desc_and_data = DescriptionAndData(
@@ -219,6 +254,8 @@ def get_sending_epoch_probabilities(sm: sem.Simulator, destination_dir: str):
 
 
 def get_deda_accumulated_loss_z_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     for pv_link in sm.sim_graph.sim_directed_abs_links:
         desc_and_data = DescriptionAndData(
@@ -230,6 +267,8 @@ def get_deda_accumulated_loss_z_list(sm: sem.Simulator, destination_dir: str):
 
 
 def get_deda_accumulated_weighted_loss_m_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     for pv_link in sm.sim_graph.sim_directed_abs_links:
         desc_and_data = DescriptionAndData(
@@ -241,6 +280,8 @@ def get_deda_accumulated_weighted_loss_m_list(sm: sem.Simulator, destination_dir
 
 
 def get_deda_learning_rate_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
         description="learning_rate",
@@ -250,40 +291,81 @@ def get_deda_learning_rate_list(sm: sem.Simulator, destination_dir: str):
     write_statistics_to_file(destination_dir, "learning_rate_list.txt", result_list)
 
 
+def get_per_packet_selected_path_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
+    result_list = []
+    desc_and_data = DescriptionAndData(
+        description="per_packet_selected_path",
+        datas=format_float_slice(sm.sim_graph.per_packet_selected_path)
+    )
+    result_list.append(desc_and_data)
+    write_statistics_to_file(destination_dir, "per_packet_selected_path_list.txt", result_list)
+
+
+def get_per_packet_best_path_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
+    result_list = []
+    desc_and_data = DescriptionAndData(
+        description="per_packet_selected_path",
+        datas=format_float_slice(sm.sim_graph.per_packet_selected_path)
+    )
+    result_list.append(desc_and_data)
+    write_statistics_to_file(destination_dir, "per_packet_best_path_list.txt", result_list)
+
+
+def get_per_packet_info(sm: sem.Simulator, destination_output_dir: str):
+    final_list = []
+    while True:
+        result_string = kcm.kernel_config_loader.get_per_packet_information()
+        if result_string != "":
+            str_list = result_string.split(",")
+            value_list = [int(item) for item in str_list]
+            final_list.extend(value_list)
+            if len(value_list) != 400 * 2:
+                break
+        else:
+            break
+    for i in range(0, len(final_list), 2):
+        sm.sim_graph.per_packet_selected_path.append(final_list[i])
+        sm.sim_graph.per_packet_best_path.append(final_list[i])
+    print(f"total send packets: {len(final_list) / 2}", flush=True)
+    get_per_packet_selected_path_list(sm, f"{destination_output_dir}/per_packet")
+    get_per_packet_best_path_list(sm, f"{destination_output_dir}/per_packet")
+
+
 def get_statistics(sm: sem.Simulator, destination_output_dir: str):
     """get simulator statistics after the end of simulation"""
-    # 目标目录
-    # 判断是否存在, 如果不存在就创建
-    if not os.path.exists(destination_output_dir):
-        os.makedirs(destination_output_dir, exist_ok=True)
-    # 依次调用所有的导出函数
     if elm.env_loader.sec_path_mab_type == SecPathMabType.SEC_PATH_MAB_STRATEGY_FIXED_BATCH:
-        get_sending_epochs(sm, destination_output_dir)
-        get_relied_acks_epoch(sm, destination_output_dir)
-        get_sending_timestamp_list(sm, destination_output_dir)
-        get_sending_epoch_probabilities(sm, destination_output_dir)
         print("get fixed batch experimental result", flush=True)
+        get_sending_epochs(sm, f"{destination_output_dir}/fixed")
+        get_relied_acks_epoch(sm, f"{destination_output_dir}/fixed")
+        get_sending_timestamp_list(sm, f"{destination_output_dir}/fixed")
+        get_sending_epoch_probabilities(sm, f"{destination_output_dir}/fixed")
+        get_selected_path(sm, f"{destination_output_dir}/fixed")
+        get_retrieved_timestamp_list(sm, f"{destination_output_dir}/fixed")
     else:
-        get_epoch_unsampling_packets_list(sm, destination_output_dir)
-        get_epoch_sampling_packets_list(sm, destination_output_dir)
-        get_collect_enough_ack_time_elapsed(sm, destination_output_dir)
-        get_reach_timeout_time_elapsed(sm, destination_output_dir)
         print("get dynamic batch experimental result", flush=True)
+        get_epoch_unsampling_packets_list(sm, f"{destination_output_dir}/dynamic")
+        get_epoch_sampling_packets_list(sm, f"{destination_output_dir}/dynamic")
+        get_collect_enough_ack_time_elapsed(sm, f"{destination_output_dir}/dynamic")
+        get_reach_timeout_time_elapsed(sm, f"{destination_output_dir}/dynamic")
+        get_selected_path(sm, f"{destination_output_dir}/dynamic")
+        get_retrieved_timestamp_list(sm, f"{destination_output_dir}/dynamic")
 
     print("get common part experimental result", flush=True)
-    get_packet_sending_rate(sm, destination_output_dir)
-    get_sending_elapsed_list(sm, destination_output_dir)
-    get_selected_path(sm, destination_output_dir)
-    get_determine_path_time_elapsed(sm, destination_output_dir)
-    get_update_model_time_elapsed(sm, destination_output_dir)
-    get_pv_links_weights(sm, destination_output_dir)
-    get_pv_links_illegal_ratios(sm, destination_output_dir)
-    get_pv_links_explore_probabilities(sm, destination_output_dir)
-    get_retrieved_timestamp_list(sm, destination_output_dir)
+    get_determine_path_time_elapsed(sm, f"{destination_output_dir}/common/performance")
+    get_update_model_time_elapsed(sm, f"{destination_output_dir}/common/performance")
+    get_packet_sending_rate(sm, f"{destination_output_dir}/common/performance")
+    get_sending_elapsed_list(sm, f"{destination_output_dir}/common/performance")
 
-    # deda related result
+    get_pv_links_weights(sm, f"{destination_output_dir}/common/links")
+    get_pv_links_illegal_ratios(sm, f"{destination_output_dir}/common/links")
+    get_pv_links_explore_probabilities(sm, f"{destination_output_dir}/common/links")
+
     if sm.simulator_params.enable_deda_algorithm:
         print("get deda result", flush=True)
-        get_deda_accumulated_loss_z_list(sm, destination_output_dir)
-        get_deda_accumulated_weighted_loss_m_list(sm, destination_output_dir)
-        get_deda_learning_rate_list(sm, destination_output_dir)
+        get_deda_accumulated_loss_z_list(sm, f"{destination_output_dir}/deda")
+        get_deda_accumulated_weighted_loss_m_list(sm, f"{destination_output_dir}/deda")
+        get_deda_learning_rate_list(sm, f"{destination_output_dir}/deda")
