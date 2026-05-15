@@ -17,7 +17,6 @@ from defined_types import types as tmm
 from modules.online.steps import simulator as sm
 from modules.online.steps import start_simulator as ssm
 from defined_types import types as dtm
-import time
 
 flask_instance = Flask(__name__)
 
@@ -130,7 +129,7 @@ def init_osmd_core(data):
     client_detailed_info = ClientDetailedInfo()
 
     client_detailed_info.selected_network_layer = tmm.NetworkLayer.SEC_PATH_MAB
-    client_detailed_info.transmission_pattern = tmm.TransmissionType.BATCH
+    client_detailed_info.transmission_pattern = tmm.TransmissionType.STATUS_BATCH
     client_detailed_info.file_size = -1
     client_detailed_info.processes = 1
     client_detailed_info.buffer_size = 1024
@@ -180,40 +179,40 @@ def flask_start_osmd():
     return jrm.get_json_response_from_map(response_data, 200)
 
 
-def start_retrieve_acks_core():
-    if sm.simulator_instance is None:
-        print("simulator_instance is none", flush=True)
-    else:
-        if elm.env_loader.sec_path_mab_type == dtm.SecPathMabType.SEC_PATH_MAB_STRATEGY_FIXED_BATCH:
-            epoch_id, sending_time_elapsed, received_ack_counts, expected_ack_counts, retrieved = kcm.kernel_config_loader.retrieve_kernel_information_for_fixed_batch()
-            if retrieved:
-                print(f"epoch_id: {epoch_id}, "
-                      f"sending_time_elapsed: {sending_time_elapsed}, "
-                      f"received_ack_counts: {received_ack_counts}, "
-                      f"expected_ack_counts: {expected_ack_counts}", flush=True)
-            else:
-                print("not retrieved", flush=True)
-        else:
-            epoch_id, collect_enough_acks_time_elapsed, reach_timeout_time_elapsed, current_epoch_sent_packets, received_ack_counts, expected_ack_counts, retrieved = kcm.kernel_config_loader.retrieve_kernel_information_for_dynamic_batch()
-            if retrieved:
-                print(f"epoch_id: {epoch_id}, "
-                      f"collect_enough_acks_time_elapsed: {collect_enough_acks_time_elapsed}, "
-                      f"sending_time_elapsed: {reach_timeout_time_elapsed}, "
-                      f"current_epoch_sent_packets: {current_epoch_sent_packets}, "
-                      f"received_ack_counts: {received_ack_counts}, "
-                      f"expected_ack_counts: {expected_ack_counts}",
-                      flush=True)
-            else:
-                print("not retrieved", flush=True)
+# def start_retrieve_acks_core():
+#     if sm.simulator_instance is None:
+#         print("simulator_instance is none", flush=True)
+#     else:
+#         if elm.env_loader.sec_path_mab_type == dtm.SecPathMabType.SEC_PATH_MAB_STRATEGY_FIXED_BATCH:
+#             epoch_id, sending_time_elapsed, received_ack_counts, expected_ack_counts, retrieved = kcm.kernel_config_loader.retrieve_kernel_information_for_fixed_batch()
+#             if retrieved:
+#                 print(f"epoch_id: {epoch_id}, "
+#                       f"sending_time_elapsed: {sending_time_elapsed}, "
+#                       f"received_ack_counts: {received_ack_counts}, "
+#                       f"expected_ack_counts: {expected_ack_counts}", flush=True)
+#             else:
+#                 print("not retrieved", flush=True)
+#         else:
+#             epoch_id, collect_enough_acks_time_elapsed, reach_timeout_time_elapsed, current_epoch_sent_packets, received_ack_counts, expected_ack_counts, retrieved = kcm.kernel_config_loader.retrieve_kernel_information_for_dynamic_batch()
+#             if retrieved:
+#                 print(f"epoch_id: {epoch_id}, "
+#                       f"collect_enough_acks_time_elapsed: {collect_enough_acks_time_elapsed}, "
+#                       f"sending_time_elapsed: {reach_timeout_time_elapsed}, "
+#                       f"current_epoch_sent_packets: {current_epoch_sent_packets}, "
+#                       f"received_ack_counts: {received_ack_counts}, "
+#                       f"expected_ack_counts: {expected_ack_counts}",
+#                       flush=True)
+#             else:
+#                 print("not retrieved", flush=True)
 
 
-@flask_instance.route("/startRetrieveAcks", methods=["POST"])
-def flask_start_retrieve_acks():
-    start_retrieve_acks_core()
-    response_data = {
-        "status": "success"
-    }
-    return jrm.get_json_response_from_map(response_data, 200)
+# @flask_instance.route("/startRetrieveAcks", methods=["POST"])
+# def flask_start_retrieve_acks():
+#     start_retrieve_acks_core()
+#     response_data = {
+#         "status": "success"
+#     }
+#     return jrm.get_json_response_from_map(response_data, 200)
 
 
 def set_scheduled_malicious_params_core(data):
@@ -230,7 +229,8 @@ def set_scheduled_malicious_params_core(data):
         print(f"set scheduled malicious params for normal router: {corrupt_ratio_start},{corrupt_ratio_end},"
               f"{corrupt_special_packet_ratio_start},{corrupt_special_packet_ratio_end} "
               f"at employed_epoch_or_timestamp_ms = {employed_epoch_or_timestamp_ms}", flush=True)
-
+        # kcm.kernel_config_loader.set_scheduled_malicious_params(employed_epoch_or_timestamp_ms, corrupt_ratio_start, corrupt_ratio_end,
+        #                                                         corrupt_special_packet_ratio_start, corrupt_special_packet_ratio_end)
     elif 1 == elm.env_loader.node_id:
         normal_router = sm.simulator_instance.sim_graph.sim_abstract_nodes_mapping[
             f"NormalRouter-{set_node_id}"].actual_node
@@ -259,14 +259,17 @@ def set_scheduled_malicious_params():
 
 @flask_instance.route("/startSync", methods=["POST"])
 def start_sync():
-    start_sync_core()
+    data = json.loads(request.data)
+    start_sync_core(data)
     response_data = {
         "status": "success"
     }
     return jrm.get_json_response_from_map(response_data, 200)
 
 
-def start_sync_core():
-    sm.simulator_instance.sync_timestamp = time.time()
-    sm.simulator_instance.check_thread = CheckThread()
+def start_sync_core(data):
+    timestamp = data["current_timestamp"]
+    dt = datetime.fromtimestamp(timestamp / 1000)
+    sm.simulator_instance.sync_timestamp = dt.timestamp() * 1000
+    sm.simulator_instance.check_thread = CheckThread(dt)
     sm.simulator_instance.check_thread.start()

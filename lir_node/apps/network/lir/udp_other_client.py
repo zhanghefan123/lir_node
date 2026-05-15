@@ -1,5 +1,6 @@
 import math
 import socket
+import time
 from typing import List
 from PyInquirer import prompt
 from apps.user import questions as qm
@@ -22,6 +23,8 @@ class UdpOtherClient:
         self.destination_address = None
         self.transmission_pattern = None
         self.destination_port = None
+        self.absolute_time = None
+        self.packet_index = 0
         self.sockets = []
 
     def create_udp_socket_and_set_sockopt(self, destinations: List):
@@ -100,6 +103,10 @@ class UdpOtherClient:
         进行数据的发送
         :return:
         """
+        if self.absolute_time is None:
+            get_time = time.perf_counter
+            self.absolute_time = get_time()
+
         # 获取发送包的进程的数量
         if self.transmission_pattern == tm.TransmissionType.SINGLE:  # 传输模式为一个个的发送
             sm.send_in_single(socket_tmp=self.socket_tmp,
@@ -113,6 +120,16 @@ class UdpOtherClient:
                              batch_size=self.client_detailed_info.batch_size,
                              message_size=self.client_detailed_info.message_size,
                              interval=self.client_detailed_info.interval)
+        elif self.transmission_pattern == tm.TransmissionType.STATUS_BATCH:
+            updated_packet_index = sm.send_batch_with_status(self.absolute_time,
+                                                             self.packet_index,
+                                                             socket_tmp=self.socket_tmp,
+                                                             dest_ip=self.destination_address,
+                                                             dest_port=self.destination_port,
+                                                             batch_size=self.client_detailed_info.batch_size,
+                                                             message_size=self.client_detailed_info.message_size,
+                                                             interval=self.client_detailed_info.interval)
+            self.packet_index = updated_packet_index
         elif self.transmission_pattern == tm.TransmissionType.FILE:  # 传输模式是以文件为单位
             sm.send_file(dest_ip=self.destination_address,
                          dest_port=self.destination_port,
@@ -120,6 +137,7 @@ class UdpOtherClient:
                          sockets=self.sockets,
                          file_size=self.client_detailed_info.file_size,
                          buffer_size=self.client_detailed_info.buffer_size)
+
         else:
             raise Exception(f"unsupported transmission pattern {self.transmission_pattern}")
 
@@ -137,10 +155,12 @@ class UdpOtherClient:
         self.destinations, self.destination_address = self.get_destinations(self.client_detailed_info)
 
         # 3. get transmission pattern
-        self.transmission_pattern = self.client_detailed_info.transmission_pattern if self.client_detailed_info.transmission_pattern != -1 else tm.TransmissionType.turn_str_into_type(prompt(qm.QUESTION_FOR_PACKET_TRANSMISSION_PATTERN)["pattern"])
+        self.transmission_pattern = self.client_detailed_info.transmission_pattern if self.client_detailed_info.transmission_pattern != -1 else tm.TransmissionType.turn_str_into_type(
+            prompt(qm.QUESTION_FOR_PACKET_TRANSMISSION_PATTERN)["pattern"])
 
         # 4. get destination port
-        self.destination_port = self.client_detailed_info.destination_port if self.client_detailed_info.destination_port != -1 else int(prompt(qm.QUESTION_FOR_DESTINATION_PORT)["port"])
+        self.destination_port = self.client_detailed_info.destination_port if self.client_detailed_info.destination_port != -1 else int(
+            prompt(qm.QUESTION_FOR_DESTINATION_PORT)["port"])
 
         # 5. get sockets
         for i in range(self.number_of_processes):

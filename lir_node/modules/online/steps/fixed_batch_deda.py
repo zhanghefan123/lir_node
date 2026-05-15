@@ -12,8 +12,7 @@ import math
 
 
 def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator,
-                                                               current_epoch_selected_path: sppm.SimPath) -> List[
-    RetrievedFeedback]:
+                                                               current_epoch_selected_path: sppm.SimPath) -> List[RetrievedFeedback]:
     """
     进行真实的数据包的转发
     :return:
@@ -21,7 +20,7 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator
     # 首先判断是否需要进行 retrieve
     # --------------------------------------------------------------------------------------------------------------------------------------------
     if len(sm.old_epoch_path_list) > 0:
-        retrieved_feedbacks = kcm.kernel_config_loader.retrieve_kernel_information_for_fixed_batch()
+        retrieved_feedbacks, received_string = kcm.kernel_config_loader.retrieve_kernel_information_for_fixed_batch()
         if len(retrieved_feedbacks) > 0:  # 如果大于 0 说明进行了 feedback 的获取
             for retrieved_feedback in retrieved_feedbacks:
                 old_epoch_selected_path = sm.old_epoch_path_list.pop(0)
@@ -61,7 +60,7 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator
         batch_size = sm.simulator_params.number_of_pkts_per_link * (
                 len(current_epoch_selected_path.pv_routers) + 1)
         # 计算每个节点的采样大小
-        counts = cm.calc_cascade_sample_counts(batch_size, delivery_ratio_list)
+        counts = cm.calc_cascade_sample_counts(batch_size, [1.0] * len(delivery_ratio_list))
         # 如果当前内核路径为空, 或者当前内核路径和当前选择的路径不同
         sm.latest_selected_path = current_epoch_selected_path
         # 进行路径的下发
@@ -74,15 +73,16 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator
         batch_size = sm.simulator_params.number_of_pkts_per_link * (
                 len(current_epoch_selected_path.pv_routers) + 1)
         # 计算每个节点的采样大小
-        counts = cm.calc_cascade_sample_counts(batch_size, delivery_ratio_list)
+        counts = cm.calc_cascade_sample_counts(batch_size, [1.0] * len(delivery_ratio_list))
         # 进行路径的下发
         kcm.kernel_config_loader.reset_sec_path_mab_route_for_fixed_batch(batch_size, counts)
 
     # 进行实际的数据包的发送
     sm.client_detailed_info.batch_size = sm.simulator_params.number_of_pkts_per_link * (
             len(current_epoch_selected_path.pv_routers) + 1)
-    udp_other_client = uocm.UdpOtherClient(sm.client_detailed_info)
-    udp_other_client.start()
+    if sm.udp_other_client is None:
+        sm.udp_other_client = uocm.UdpOtherClient(sm.client_detailed_info)
+    sm.udp_other_client.start()
     # --------------------------------------------------------------------------------------------------------------------------------------------
 
     # 进行发送 epoch, relied_epoch, 选择的路径的更新
@@ -102,8 +102,7 @@ def start_fixed_batch_deda(sm: sem.Simulator):
 
     # 2. 进入循环
     while True:
-        elapsed_ms = (time.time() - sm.sync_timestamp) * 1000
-        if elapsed_ms > sm.simulator_params.experiment_time_elapsed_ms:
+        if sm.sync_timestamp + sm.simulator_params.experiment_time_elapsed_ms <= (time.time() * 1000):
             break
 
         # 2.2 判断是否取回了 ack (case 1: 如果取回了 ack, 模型的概率变化了, 需要进行重新的选路) (case 2: 如果没有取回 ack, 模型的概率没有变化依然选之前的路径)
@@ -165,15 +164,13 @@ def start_fixed_batch_deda(sm: sem.Simulator):
                     illegal_ratio = directed_pv_link.illegal_ratios[-1]
                     # -------------- deda modified recitified loss calculation --------------
                     rectified_loss = osm.calculate_rectified_loss(sm, illegal_ratio,
-                                                                  directed_pv_link.sending_epoch_probabilities[
-                                                                      retrieved_feedback.epoch_id])
+                                                                  directed_pv_link.sending_epoch_probabilities[retrieved_feedback.epoch_id])
                     # -------------- deda modified recitified loss calculation --------------
                     directed_pv_link.rectified_losses.append(rectified_loss)
                     # --------------------- deda 流程 ---------------------
                     directed_pv_link.accumulated_loss_z += rectified_loss
                     directed_pv_link.weighted_accumulated_loss_m += rectified_loss * \
-                                                                    directed_pv_link.sending_epoch_probabilities[
-                                                                        retrieved_feedback.epoch_id]
+                                                                    directed_pv_link.sending_epoch_probabilities[retrieved_feedback.epoch_id]
                     # --------------------- deda 流程 ---------------------
                 else:
                     rectified_loss = 0.0

@@ -26,6 +26,10 @@ def format_float_slice(values: List[float]) -> str:
     return ",".join(f"{v:.10f}" for v in values)
 
 
+def format_string(values: List[str]) -> str:
+    return "\n".join(v for v in values)
+
+
 def write_statistics_to_file(destination_dir: str, filename: str,
                              desc_and_datas: List[DescriptionAndData]):
     """将统计数据写入文件"""
@@ -308,11 +312,35 @@ def get_per_packet_best_path_list(sm: sem.Simulator, destination_dir: str):
         os.makedirs(destination_dir)
     result_list = []
     desc_and_data = DescriptionAndData(
-        description="per_packet_selected_path",
-        datas=format_float_slice(sm.sim_graph.per_packet_selected_path)
+        description="per_packet_best_path",
+        datas=format_float_slice(sm.sim_graph.per_packet_best_path)
     )
     result_list.append(desc_and_data)
     write_statistics_to_file(destination_dir, "per_packet_best_path_list.txt", result_list)
+
+
+def get_per_packet_timestamp_list(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
+    result_list = []
+    desc_and_data = DescriptionAndData(
+        description="per_packet_timestamp",
+        datas=format_float_slice(sm.sim_graph.per_packet_timestamp)
+    )
+    result_list.append(desc_and_data)
+    write_statistics_to_file(destination_dir, "per_packet_timestamp_list.txt", result_list)
+
+
+def print_recevied_string(sm: sem.Simulator, destination_dir: str):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
+    result_list = []
+    desc_and_data = DescriptionAndData(
+        description="received_string",
+        datas=format_string(sm.sim_graph.received_string_list)
+    )
+    result_list.append(desc_and_data)
+    write_statistics_to_file(destination_dir, "received_string.txt", result_list)
 
 
 def get_per_packet_info(sm: sem.Simulator, destination_output_dir: str):
@@ -323,16 +351,18 @@ def get_per_packet_info(sm: sem.Simulator, destination_output_dir: str):
             str_list = result_string.split(",")
             value_list = [int(item) for item in str_list]
             final_list.extend(value_list)
-            if len(value_list) != 400 * 2:
+            if len(value_list) != 200 * 3:
                 break
         else:
             break
-    for i in range(0, len(final_list), 2):
+    for i in range(0, len(final_list), 3):
         sm.sim_graph.per_packet_selected_path.append(final_list[i])
-        sm.sim_graph.per_packet_best_path.append(final_list[i])
-    print(f"total send packets: {len(final_list) / 2}", flush=True)
+        sm.sim_graph.per_packet_best_path.append(final_list[i + 1])
+        sm.sim_graph.per_packet_timestamp.append(final_list[i + 2])
+    print(f"total send packets: {len(final_list) / 3}", flush=True)
     get_per_packet_selected_path_list(sm, f"{destination_output_dir}/per_packet")
     get_per_packet_best_path_list(sm, f"{destination_output_dir}/per_packet")
+    get_per_packet_timestamp_list(sm, f"{destination_output_dir}/per_packet")
 
 
 def get_statistics(sm: sem.Simulator, destination_output_dir: str):
@@ -344,6 +374,8 @@ def get_statistics(sm: sem.Simulator, destination_output_dir: str):
         get_sending_timestamp_list(sm, f"{destination_output_dir}/fixed")
         get_sending_epoch_probabilities(sm, f"{destination_output_dir}/fixed")
         get_selected_path(sm, f"{destination_output_dir}/fixed")
+        get_packet_sending_rate(sm, f"{destination_output_dir}/common/performance")
+        get_sending_elapsed_list(sm, f"{destination_output_dir}/common/performance")
         get_retrieved_timestamp_list(sm, f"{destination_output_dir}/fixed")
     else:
         print("get dynamic batch experimental result", flush=True)
@@ -357,12 +389,11 @@ def get_statistics(sm: sem.Simulator, destination_output_dir: str):
     print("get common part experimental result", flush=True)
     get_determine_path_time_elapsed(sm, f"{destination_output_dir}/common/performance")
     get_update_model_time_elapsed(sm, f"{destination_output_dir}/common/performance")
-    get_packet_sending_rate(sm, f"{destination_output_dir}/common/performance")
-    get_sending_elapsed_list(sm, f"{destination_output_dir}/common/performance")
-
     get_pv_links_weights(sm, f"{destination_output_dir}/common/links")
     get_pv_links_illegal_ratios(sm, f"{destination_output_dir}/common/links")
     get_pv_links_explore_probabilities(sm, f"{destination_output_dir}/common/links")
+
+    print_recevied_string(sm, f"{destination_output_dir}/common/strs")
 
     if sm.simulator_params.enable_deda_algorithm:
         print("get deda result", flush=True)

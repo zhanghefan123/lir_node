@@ -20,7 +20,8 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
     # 首先判断是否需要进行 retrieve
     # --------------------------------------------------------------------------------------------------------------------------------------------
     if len(sm.old_epoch_path_list) > 0:
-        retrieved_feedbacks = kcm.kernel_config_loader.retrieve_kernel_information_for_fixed_batch()
+        retrieved_feedbacks, received_string = kcm.kernel_config_loader.retrieve_kernel_information_for_fixed_batch()
+        sm.sim_graph.received_string_list.append(received_string)
         if len(retrieved_feedbacks) > 0:  # 如果大于 0 说明进行了 feedback 的获取
             for retrieved_feedback in retrieved_feedbacks:
                 old_epoch_selected_path = sm.old_epoch_path_list.pop(0)
@@ -55,7 +56,7 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
         batch_size = sm.simulator_params.number_of_pkts_per_link * (
                 len(current_epoch_selected_path.pv_routers) + 1)
         # 计算每个节点的采样大小
-        counts = cm.calc_cascade_sample_counts(batch_size, delivery_ratio_list)
+        counts = cm.calc_cascade_sample_counts(batch_size, [1.0] * len(delivery_ratio_list))
         # 如果当前内核路径为空, 或者当前内核路径和当前选择的路径不同
         sm.latest_selected_path = current_epoch_selected_path
         # 进行路径的下发
@@ -68,15 +69,16 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
         batch_size = sm.simulator_params.number_of_pkts_per_link * (
                 len(current_epoch_selected_path.pv_routers) + 1)
         # 计算每个节点的采样大小
-        counts = cm.calc_cascade_sample_counts(batch_size, delivery_ratio_list)
+        counts = cm.calc_cascade_sample_counts(batch_size, [1.0] * len(delivery_ratio_list))
         # 进行路径的下发
         kcm.kernel_config_loader.reset_sec_path_mab_route_for_fixed_batch(batch_size, counts)
 
     # 进行实际的数据包的发送
     sm.client_detailed_info.batch_size = sm.simulator_params.number_of_pkts_per_link * (
             len(current_epoch_selected_path.pv_routers) + 1)
-    udp_other_client = uocm.UdpOtherClient(sm.client_detailed_info)
-    udp_other_client.start()
+    if sm.udp_other_client is None:
+        sm.udp_other_client = uocm.UdpOtherClient(sm.client_detailed_info)
+    sm.udp_other_client.start()
     # --------------------------------------------------------------------------------------------------------------------------------------------
     # 进行发送 epoch, relied_epoch, 选择的路径的更新
     # --------------------------------------------------------------------------------------------------------------------------------------------
@@ -86,6 +88,9 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
     sm.sim_graph.selected_paths.append(current_epoch_selected_path)
     # --------------------------------------------------------------------------------------------------------------------------------------------
     # 完成之后再检查一次
+    # 进行每个节点的更新
+    for pv_link in sm.sim_graph.sim_directed_abs_links:
+        pv_link.sending_epoch_probabilities.append(pv_link.explore_probabilities[-1])
     return []
 
 
@@ -95,8 +100,7 @@ def start_fixed_batch_normal(sm: sem.Simulator):
 
     # 2. 进入循环
     while True:
-        elapsed_ms = (time.time() - sm.sync_timestamp) * 1000
-        if elapsed_ms > sm.simulator_params.experiment_time_elapsed_ms:
+        if sm.sync_timestamp + sm.simulator_params.experiment_time_elapsed_ms <= (time.time() * 1000):
             break
 
         # 2.2 判断是否取回了 ack (case 1: 如果取回了 ack, 模型的概率变化了, 需要进行重新的选路) (case 2: 如果没有取回 ack, 模型的概率没有变化依然选之前的路径)
@@ -131,8 +135,7 @@ def start_fixed_batch_normal(sm: sem.Simulator):
             for index in range(retrieved_feedback.number_of_sample_nodes):
                 if index == 0:
                     estimated_legal_ratio = min(float(
-                        retrieved_feedback.retrieved_ack_counts[index] / retrieved_feedback.expected_ack_counts[index]),
-                                                1.0)
+                        retrieved_feedback.retrieved_ack_counts[index] / retrieved_feedback.expected_ack_counts[index]), 1.0)
                 else:
                     delivery_ratio_before = float(retrieved_feedback.retrieved_ack_counts[index - 1]) / float(
                         retrieved_feedback.expected_ack_counts[index - 1])  # 84 / 100
@@ -164,13 +167,8 @@ def start_fixed_batch_normal(sm: sem.Simulator):
 
             # 在对偶空间上进行各个链路的权重的更新
             for directed_pv_link in sm.sim_graph.sim_directed_abs_links:
-                if sm.simulator_params.enable_dade_algorithm:
-                    learning_rate_modified = sm.simulator_params.learning_rate / math.pow(gap, 0.5)
-                    current_epoch_weight = directed_pv_link.explore_probabilities[-1] * math.exp(
-                        -learning_rate_modified * directed_pv_link.rectified_losses[-1])
-                else:
-                    current_epoch_weight = directed_pv_link.explore_probabilities[-1] * math.exp(
-                        -sm.simulator_params.learning_rate * directed_pv_link.rectified_losses[-1])
+                current_epoch_weight = directed_pv_link.explore_probabilities[-1] * math.exp(
+                    -sm.simulator_params.learning_rate * directed_pv_link.rectified_losses[-1])
                 directed_pv_link.weights.append(current_epoch_weight)
 
             # 将权重重新进行投影

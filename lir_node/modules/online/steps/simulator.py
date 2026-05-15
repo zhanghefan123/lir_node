@@ -7,6 +7,7 @@ from modules.online.types import types as tm
 from modules.online.entities import sim_graph as sgm
 from apps.user import client_detailed_info as cdim
 from queue import Queue
+from apps.network.lir import udp_other_client as uocm
 
 # 初始化全局日志器 (你可以替换为你自定义的 logger)
 simulator_logger = logging.getLogger("ModuleSimulator")
@@ -42,6 +43,7 @@ class Simulator:
         self.simulation_graph_path: str = simulation_graph_path  # 模拟图的配置文件
         self.simulator_params: SimulatorParams = simulator_params  # 模拟图的配置参数
         self.client_detailed_info: cdim.ClientDetailedInfo = client_detailed_info  # 发送udp客户端的信息
+        self.udp_other_client: Optional[uocm.UdpOtherClient] = None  # 一开始不进行设置, 在发送包的时候设置
         self.simulator_init_steps: Set[str] = set()  # Go 中的 map[string]struct{} 在 Python 中是标准的 Set (集合)
         self.rectified_loss_calculating_type: str = tm.RectifiedLossCalculateType.TYPE_SCALING  # loss 计算方式
         self.sync_timestamp = 0

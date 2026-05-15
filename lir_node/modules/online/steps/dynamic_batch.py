@@ -30,8 +30,9 @@ def forward_real_packets_or_retrieve_acks_for_dynamic_batch(sm: sem.Simulator) -
         return received_ack_counts, expected_ack_counts
     # 3. 如果没有成功返回, 那么进行数据包的发送 (不用进行路径的下发, 沿之前的路径进行发送即可)
     sm.client_detailed_info.batch_size = sm.simulator_params.mini_batch_size
-    udp_other_client = uocm.UdpOtherClient(sm.client_detailed_info)
-    udp_other_client.start()
+    if sm.udp_other_client is None:
+        sm.udp_other_client = uocm.UdpOtherClient(sm.client_detailed_info)
+    sm.udp_other_client.start()
     return [], []
 
 
@@ -45,9 +46,10 @@ def start_dynamic_batch(sm: sem.Simulator):
 
     # 2. 进入循环
     while True:
-        elapsed_ms = (time.time() - sm.sync_timestamp) * 1000
-        if elapsed_ms > sm.simulator_params.experiment_time_elapsed_ms:
+        if sm.sync_timestamp + sm.simulator_params.experiment_time_elapsed_ms <= (time.time() * 1000):
             break
+        # if elapsed_ms > sm.simulator_params.experiment_time_elapsed_ms:
+        #     break
 
         if sm.retrieved_acks:
             # ----------------------- 根据更新后的模型进行路径的选择  -----------------------

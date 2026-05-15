@@ -47,6 +47,8 @@ class SimGraph:
         self.packet_sending_rate: List[float] = []
         self.per_packet_selected_path: List[int] = []
         self.per_packet_best_path: List[int] = []
+        self.per_packet_timestamp: List[int] = []
+        self.received_string_list: List[str] = []
         # ------------------------ fixed/dynamic batch 共享参数 ------------------------
 
         # ------------------------ fixed batch 独享运行相关参数 ------------------------

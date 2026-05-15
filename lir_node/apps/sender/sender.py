@@ -38,7 +38,38 @@ def get_info_for_batch():
     return message_size, batch_size, interval
 
 
-def send_in_batch(socket_tmp: socket.socket, dest_ip: str, dest_port: int, batch_size: int = -1, message_size: int = -1, interval: float = -1):
+def send_batch_with_status(absolute_start_time, packet_index: int, socket_tmp: socket.socket, dest_ip: str,
+                           dest_port: int, batch_size: int = -1, message_size: int = -1, interval: float = -1) -> int:
+    """
+    进行批量的消息的发送
+    :param absolute_start_time 绝对启动时间
+    :param packet_index 批次的索引
+    :param batch_size: 一个批次的大小
+    :param message_size: 一个消息的大小
+    :param interval: 消息的间隔
+    :param socket_tmp: socket 变量
+    :param dest_ip: 目的 ip
+    :param dest_port: 目的端口
+    :return:
+    """
+    content = ("f" * message_size).encode()
+    current_packet_index = packet_index
+    get_time = time.perf_counter
+    for _ in range(batch_size):
+        target_time = absolute_start_time + (current_packet_index * interval)
+        while True:
+            current_time = get_time()
+            if current_time < target_time:
+                continue
+            else:
+                break
+        current_packet_index += 1
+        socket_tmp.sendto(content, (dest_ip, dest_port))
+    return current_packet_index
+
+
+def send_in_batch(socket_tmp: socket.socket, dest_ip: str, dest_port: int, batch_size: int = -1, message_size: int = -1,
+                  interval: float = -1):
     """
     进行批量的消息的发送
     :param batch_size: 一个批次的大小
@@ -49,18 +80,12 @@ def send_in_batch(socket_tmp: socket.socket, dest_ip: str, dest_port: int, batch
     :param dest_port: 目的端口
     :return:
     """
-    # rcv_buffer = socket_tmp.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
-    # snd_buffer = socket_tmp.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)
-    # print(f"rcv_buffer: {rcv_buffer} snd_buffer: {snd_buffer}", flush=True)
     if (-1 == batch_size) or (-1 == message_size) or (-1 == interval):
         message_size, batch_size, interval = get_info_for_batch()
-    # print(f"message_size: {message_size} batch_size: {batch_size} interval: {interval}")
     content = ("f" * message_size).encode()
     for index in range(batch_size):
         socket_tmp.sendto(content, (dest_ip, dest_port))
         time.sleep(interval)
-        # if index % 100 == 0:
-        #     print(f"current send {index} packets", flush=True)
 
 
 def get_info_for_file():
@@ -115,7 +140,7 @@ def send_file(sockets: List[socket.socket], dest_ip: str, dest_port: int, number
         modified_dest_port = dest_port + index
         socket_tmp = sockets[index]
         tmp_process = Process(target=send_file_in_single_process, args=(
-        socket_tmp, dest_ip, modified_dest_port, index, file_size, buffer_size, send_packets, multiprocesses_lock))
+            socket_tmp, dest_ip, modified_dest_port, index, file_size, buffer_size, send_packets, multiprocesses_lock))
         processes.append(tmp_process)
 
     # 进行所有进程的启动

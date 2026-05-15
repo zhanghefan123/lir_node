@@ -1,6 +1,5 @@
 from modules.online.entities import sim_path as sppm
 from modules.online.types import types as tm
-from modules.online.entities import sim_normal_router as snrm
 from modules.online.steps import simulator as sem
 from typing import Dict
 import random

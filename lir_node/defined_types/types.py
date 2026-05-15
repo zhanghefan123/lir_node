@@ -252,19 +252,22 @@ class TransmissionType:
     SINGLE = 0
     FILE = 1
     BATCH = 2
+    STATUS_BATCH = 3
 
     # 为了和其他类保持命名一致性，这里将原先的 TYPE_MAP 改名为 STR_TO_TYPE_MAP
     STR_TO_TYPE_MAP = {
         "single": SINGLE,
         "file": FILE,
-        "batch": BATCH
+        "batch": BATCH,
+        "status_batch": STATUS_BATCH
     }
 
     # 新增 int -> str 的映射
     TYPE_TO_STR_MAP = {
         SINGLE: "single",
         FILE: "file",
-        BATCH: "batch"
+        BATCH: "batch",
+        STATUS_BATCH: "status_batch"
     }
 
     @classmethod

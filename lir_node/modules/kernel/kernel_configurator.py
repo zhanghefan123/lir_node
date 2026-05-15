@@ -6,7 +6,7 @@ from modules.config import interface_loader as ilm
 from modules.config import route_loader as rlm
 from defined_types import types as tm
 from modules.online.entities.sim_end_host import SimEndHost
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from modules.config import env_loader as elm
 from modules.online.entities import retrieved_feedback as rfm
 from modules.online.check_event_thread import scheduled_event as sem
@@ -332,15 +332,16 @@ class KernelConfigurator:
                         f"{corrupt_special_packet_ratio_start},{corrupt_special_packet_ratio_end}")
         self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_SCHDULED_MALICIOUS_PARAMS)
 
-    def retrieve_kernel_information_for_fixed_batch(self) -> List[rfm.RetrievedFeedback]:
+    def retrieve_kernel_information_for_fixed_batch(self) -> Tuple[List[rfm.RetrievedFeedback], str]:
         retrieved_feedbacks = []
         received_string = self.netlink_client.send_netlink_data("",
                                                                 tm.NetlinkMessageType.CMD_RETRIEVE_KERNEL_INFORMATION)
+
+        # print(f"received_string {received_string}", flush=True)
         if received_string.startswith("Err:"):
-            return retrieved_feedbacks
+            return retrieved_feedbacks, received_string
         else:
             feedbacks_in_str = list(received_string.split(","))
-            # print(f"feedbacks in str = {feedbacks_in_str}", flush=True)
             number_of_feedbacks = int(feedbacks_in_str.pop(0))
             feedbacks_in_str.pop(len(feedbacks_in_str) - 1)
 
@@ -373,7 +374,7 @@ class KernelConfigurator:
                     index += 1
                 feedbacks_in_str = feedbacks_in_str[3 + number_of_sample_nodes * 2:]
             # 把 feedback 全部打印出来
-            return retrieved_feedbacks
+            return retrieved_feedbacks, received_string
 
     def retrieve_kernel_information_for_dynamic_batch(self) -> (int, int, int, int, int, List[int], List[int], bool):
         final_string = f""
