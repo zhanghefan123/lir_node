@@ -14,6 +14,16 @@ class ScheduledEvent:
         self.corrupt_special_packet_ratio_start = corrupt_special_packet_ratio_start
         self.corrupt_special_packet_ratio_end = corrupt_special_packet_ratio_end
 
+    def params_changed(self) -> bool:
+        if self.normal_router is None:
+            return False
+        return (
+            self.normal_router.corrupt_ratio_start != self.corrupt_ratio_start
+            or self.normal_router.corrupt_ratio_end != self.corrupt_ratio_end
+            or self.normal_router.corrupt_special_packet_ratio_start != self.corrupt_special_packet_ratio_start
+            or self.normal_router.corrupt_special_packet_ratio_end != self.corrupt_special_packet_ratio_end
+        )
+
     def execute(self):
         self.normal_router.corrupt_ratio_start = self.corrupt_ratio_start
         self.normal_router.corrupt_ratio_end = self.corrupt_ratio_end

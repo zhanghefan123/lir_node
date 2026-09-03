@@ -1,4 +1,6 @@
+import copy
 import os
+import struct
 from modules.config.env_loader import env_loader
 from modules.online.entities import sim_path as sppm
 from modules.netlink import netlink_client as ncm
@@ -27,7 +29,8 @@ class KernelConfigurator:
         """
         进行节点 id 的设置, 这里使用的是图节点的 id 
         """
-        self.netlink_client.send_netlink_data(f"{elm.env_loader.graph_node_id}", tm.NetlinkMessageType.CMD_SET_NODE_ID)
+        self.netlink_client.send_netlink_data_and_retrieve_string(f"{elm.env_loader.graph_node_id}",
+                                                                  tm.NetlinkMessageType.CMD_SET_NODE_ID)
 
     def init_routing_table(self):
         """
@@ -37,14 +40,14 @@ class KernelConfigurator:
         if elm.env_loader.routing_table_type == tm.RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE:  # 代表是 array based routing table type
             number_of_routes = len(self.lir_routes) + 2
             send_data = f"{tm.RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE},{number_of_routes}"
-            self.netlink_client.send_netlink_data(send_data,
-                                                  tm.NetlinkMessageType.CMD_INIT_ROUTING_TABLE)
+            self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
+                                                                      tm.NetlinkMessageType.CMD_INIT_ROUTING_TABLE)
             print("init array based routing table", flush=True)
         elif elm.env_loader.routing_table_type == tm.RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE:  # 代表是 hash based routing table type
             number_of_buckets = 2000
             send_data = f"{tm.RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE},{number_of_buckets}"
-            self.netlink_client.send_netlink_data(send_data,
-                                                  tm.NetlinkMessageType.CMD_INIT_ROUTING_TABLE)
+            self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
+                                                                      tm.NetlinkMessageType.CMD_INIT_ROUTING_TABLE)
             print("init hash based routing table", flush=True)
         else:
             print("do not need to initialize routing table")
@@ -55,7 +58,8 @@ class KernelConfigurator:
         """
         number_of_interfaces = len(self.lir_interfaces)
         send_data = f"{number_of_interfaces}"
-        self.netlink_client.send_netlink_data(send_data, tm.NetlinkMessageType.CMD_INIT_INTERFACE_TABLE)
+        self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
+                                                                  tm.NetlinkMessageType.CMD_INIT_INTERFACE_TABLE)
 
     def init_array_based_multipath_table(self):
         """
@@ -78,7 +82,8 @@ class KernelConfigurator:
         if elm.env_loader.routing_table_type == tm.RoutingTableType.ARRAY_BASED_MULTIPATH_TABLE_TYPE:
             number_of_buckets = 100
             finalString = f"{env_loader.multipath_routing_type},{number_of_buckets},{env_loader.number_of_nodes},{number_of_relationships},{number_of_paths}"
-            self.netlink_client.send_netlink_data(finalString, tm.NetlinkMessageType.CMD_INIT_MULTIPATH_TABLE)
+            self.netlink_client.send_netlink_data_and_retrieve_string(finalString,
+                                                                      tm.NetlinkMessageType.CMD_INIT_MULTIPATH_TABLE)
             print("init array based multipath table", flush=True)
         else:
             print("not init array based multipath table", flush=True)
@@ -89,18 +94,20 @@ class KernelConfigurator:
         :return:
         """
         send_data = f"{elm.env_loader.pvf_effective_bits}"
-        self.netlink_client.send_netlink_data(send_data, tm.NetlinkMessageType.CMD_INIT_SELIR)
+        self.netlink_client.send_netlink_data_and_retrieve_string(send_data, tm.NetlinkMessageType.CMD_INIT_SELIR)
 
     def init_bloom_filter(self):
         """
         初始化布隆过滤器
         """
         send_data = f"{elm.env_loader.bf_effective_bits},{elm.env_loader.hash_seed},{elm.env_loader.number_of_hash_functions}"
-        self.netlink_client.send_netlink_data(send_data, tm.NetlinkMessageType.CMD_INIT_BLOOM_FILTER)
+        self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
+                                                                  tm.NetlinkMessageType.CMD_INIT_BLOOM_FILTER)
 
     def modify_bloom_filter(self, bf_effective_bits: int):
         send_data = f"{bf_effective_bits}"
-        self.netlink_client.send_netlink_data(send_data, tm.NetlinkMessageType.CMD_MODIFY_BLOOM_FILTER)
+        self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
+                                                                  tm.NetlinkMessageType.CMD_MODIFY_BLOOM_FILTER)
 
     def insert_routing_table_entries(self):
         """
@@ -110,7 +117,8 @@ class KernelConfigurator:
             send_data = f"{lir_route.source},{lir_route.destination},{lir_route.path_length}"
             for index in range(lir_route.path_length):
                 send_data += f",{lir_route.link_identifiers[index]},{lir_route.node_ids[index]}"
-            self.netlink_client.send_netlink_data(send_data, tm.NetlinkMessageType.CMD_INSERT_ROUTING_TABLE_ENTRY)
+            self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
+                                                                      tm.NetlinkMessageType.CMD_INSERT_ROUTING_TABLE_ENTRY)
 
     def insert_interface_table_entries(self):
         """
@@ -118,15 +126,16 @@ class KernelConfigurator:
         """
         for index, lir_interface in enumerate(self.lir_interfaces):
             send_data = f"{index},{lir_interface.link_identifier},{lir_interface.ifindex},{lir_interface.source_node_id},{lir_interface.target_node_id},{lir_interface.peer_ip_address}"
-            self.netlink_client.send_netlink_data(send_data, tm.NetlinkMessageType.CMD_INSERT_INTERFACE_TABLE_ENTRY)
+            self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
+                                                                      tm.NetlinkMessageType.CMD_INSERT_INTERFACE_TABLE_ENTRY)
 
     def set_lir_single_time_encoding_count(self):
         """
         设置 lir 单次插入的元素的次数
         :return:
         """
-        self.netlink_client.send_netlink_data(f"{elm.env_loader.lir_single_time_encoding_count}",
-                                              tm.NetlinkMessageType.CMD_SET_LIR_SINGLE_TIME_ENCODING_COUNT)
+        self.netlink_client.send_netlink_data_and_retrieve_string(f"{elm.env_loader.lir_single_time_encoding_count}",
+                                                                  tm.NetlinkMessageType.CMD_SET_LIR_SINGLE_TIME_ENCODING_COUNT)
 
     def clear_segments_by_destination(self, destination: int):
         """
@@ -134,7 +143,8 @@ class KernelConfigurator:
         :return:
         """
         final_string = f"{destination}"
-        self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_CLEAR_SEGMENT_LIST)
+        self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                  tm.NetlinkMessageType.CMD_CLEAR_SEGMENT_LIST)
 
     def insert_source_multipath_segments(self):
         """
@@ -151,7 +161,8 @@ class KernelConfigurator:
                     if line == "":
                         continue
                     else:
-                        self.netlink_client.send_netlink_data(line, tm.NetlinkMessageType.CMD_SOURCE_INSERT_SEGMENT)
+                        self.netlink_client.send_netlink_data_and_retrieve_string(line,
+                                                                                  tm.NetlinkMessageType.CMD_SOURCE_INSERT_SEGMENT)
 
     def insert_destination_routing_table_entries(self):
         """
@@ -168,8 +179,8 @@ class KernelConfigurator:
                     if line == "":
                         continue
                     else:
-                        self.netlink_client.send_netlink_data(line,
-                                                              tm.NetlinkMessageType.CMD_INSERT_DEST_ROUTING_TABLE_ENTRY)
+                        self.netlink_client.send_netlink_data_and_retrieve_string(line,
+                                                                                  tm.NetlinkMessageType.CMD_INSERT_DEST_ROUTING_TABLE_ENTRY)
 
     def insert_source_multipath_output_link_identifiers(self):
         """
@@ -183,8 +194,8 @@ class KernelConfigurator:
                 all_lines = f.readlines()
                 first_line = all_lines[0]
                 first_line = first_line.rstrip("\n")
-                self.netlink_client.send_netlink_data(first_line,
-                                                      tm.NetlinkMessageType.CMD_INSERT_OUTPUT_LINK_IDENTIFIERS)
+                self.netlink_client.send_netlink_data_and_retrieve_string(first_line,
+                                                                          tm.NetlinkMessageType.CMD_INSERT_OUTPUT_LINK_IDENTIFIERS)
 
     def insert_relationship_between_target_node_id_and_paths(self):
         file_path = f"/configuration/{elm.env_loader.container_name}/relationship.txt"
@@ -197,8 +208,8 @@ class KernelConfigurator:
                     if line == "":
                         continue
                     else:
-                        self.netlink_client.send_netlink_data(line,
-                                                              tm.NetlinkMessageType.CMD_INSERT_RELATIONSHIP_BETWEEN_NEXT_NODE_ID_AND_PATHS)
+                        self.netlink_client.send_netlink_data_and_retrieve_string(line,
+                                                                                  tm.NetlinkMessageType.CMD_INSERT_RELATIONSHIP_BETWEEN_NEXT_NODE_ID_AND_PATHS)
 
     def insert_intermediate_multipath_segments(self):
         """
@@ -215,8 +226,8 @@ class KernelConfigurator:
                     if line == "":
                         continue
                     else:
-                        self.netlink_client.send_netlink_data(line,
-                                                              tm.NetlinkMessageType.CMD_INTERMEDIATE_INSERT_SEGMENT)
+                        self.netlink_client.send_netlink_data_and_retrieve_string(line,
+                                                                                  tm.NetlinkMessageType.CMD_INTERMEDIATE_INSERT_SEGMENT)
 
     def insert_intermediate_multipath_output_link_identifiers(self):
         """
@@ -230,17 +241,18 @@ class KernelConfigurator:
                 all_lines = f.readlines()
                 first_line = all_lines[0]
                 first_line = first_line.rstrip("\n")
-                self.netlink_client.send_netlink_data(first_line,
-                                                      tm.NetlinkMessageType.CMD_INSERT_OUTPUT_LINK_IDENTIFIERS)
+                self.netlink_client.send_netlink_data_and_retrieve_string(first_line,
+                                                                          tm.NetlinkMessageType.CMD_INSERT_OUTPUT_LINK_IDENTIFIERS)
 
     def set_sec_path_mab_route_for_fixed_batch(self, current_epoch_selected_path: sppm.SimPath, batch_size: int,
-                                               counts: List[int]) -> str:
+                                               counts: List[int]):
         """
         获取用户空间下发的路径 (对于固定 batch 大小的方式)
         :return:
         """
         source_end_host = current_epoch_selected_path.node_list[0].actual_node
         destination_end_host = current_epoch_selected_path.node_list[-1].actual_node
+
         if isinstance(source_end_host, SimEndHost):
             source_id = source_end_host.index
         else:
@@ -249,30 +261,40 @@ class KernelConfigurator:
             destination_id = destination_end_host.index
         else:
             raise ValueError("destinatio not end host")
-        link_identifiers = len(current_epoch_selected_path.pv_routers) + 1
-        final_string = f"{current_epoch_selected_path.path_id},{source_id},{destination_id},{link_identifiers}"
-        # append link identifiers
+
+        link_identifiers_count = len(current_epoch_selected_path.pv_routers) + 1
+        node_ids_count = len(current_epoch_selected_path.pv_routers) + 1
+        sample_count = len(counts)
+
+        header_list = [current_epoch_selected_path.path_id, source_id, destination_id,
+                       batch_size, link_identifiers_count, node_ids_count, sample_count]
+        header_fmt = f"<{len(header_list)}I"
+        header_bytes = struct.pack(header_fmt, *header_list)
+
+        payload_list = []
         for interface in current_epoch_selected_path.interfaces:
-            final_string += f",{interface.link_identifier}"
-        # append number of node ids
-        final_string += f",{len(current_epoch_selected_path.pv_routers) + 1}"
-        # append node ids
+            payload_list.append(interface.link_identifier)
+
         for node in current_epoch_selected_path.pv_routers:
-            final_string += f",{node.index}"
-        final_string += f",{destination_id}"
-        # append final batch size (batch size 的作用是进行内核的 sequence 的生成)
-        final_string += f",{batch_size}"
+            payload_list.append(node.index)
+        payload_list.append(destination_id)
+
         for count in counts:
-            final_string += f",{count}"
-        self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_SEC_PATH_MAB_ROUTE)
-        # 将生成的 netlink string 进行返回
-        return final_string
+            payload_list.append(count)
+        payload_format = f"<{len(payload_list)}I"
+        payload_bytes = struct.pack(payload_format, *payload_list)
+
+        # print(f"header_list: {header_list} | payload_list: {payload_list}", flush=True)
+
+        self.netlink_client.send_netlink_data_and_retrieve_string(header_bytes + payload_bytes,
+                                                                  tm.NetlinkMessageType.CMD_SET_SEC_PATH_MAB_ROUTE)
 
     def set_sec_path_mab_route_for_dynamic_batch(self, current_epoch_selected_path: sppm.SimPath, mini_batch_size: int):
         """
         获取用户空间下发的路径 (对于动态 batch 大小的方式)
         :return:
         """
+        path_id = current_epoch_selected_path.path_id
         source_end_host = current_epoch_selected_path.node_list[0].actual_node
         destination_end_host = current_epoch_selected_path.node_list[-1].actual_node
         if isinstance(source_end_host, SimEndHost):
@@ -284,153 +306,244 @@ class KernelConfigurator:
         else:
             raise ValueError("destinatio not end host")
         link_identifiers = len(current_epoch_selected_path.pv_routers) + 1
-        final_string = f"{current_epoch_selected_path.path_id},{source_id},{destination_id},{link_identifiers}"
+        sample_nodes_count = len(current_epoch_selected_path.pv_routers) + 1
+        header_list = [path_id, source_id, destination_id, mini_batch_size, link_identifiers, sample_nodes_count]
+        header_fmt = f"<{len(header_list)}I"
+        header_bytes = struct.pack(header_fmt, *header_list)
+
+        payload_list = []
         # append link identifiers
         for interface in current_epoch_selected_path.interfaces:
-            final_string += f",{interface.link_identifier}"
-        # append number of node ids
-        final_string += f",{len(current_epoch_selected_path.pv_routers) + 1}"
-        # append node ids
+            payload_list.append(interface.link_identifier)
+
+        # append sample node ids
         for node in current_epoch_selected_path.pv_routers:
-            final_string += f",{node.index}"
-        final_string += f",{destination_id}"
-        # append batch size
-        final_string += f",{mini_batch_size}"
-        self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_SEC_PATH_MAB_ROUTE)
-        # 将生成的 netlink string 进行返回
-        return final_string
+            payload_list.append(node.index)
+        payload_list.append(destination_id)
+        payload_format = f"<{len(payload_list)}I"
+        payload_bytes = struct.pack(payload_format, *payload_list)
+        self.netlink_client.send_netlink_data_and_retrieve_string(header_bytes + payload_bytes,
+                                                                  tm.NetlinkMessageType.CMD_SET_SEC_PATH_MAB_ROUTE)
+
+    def set_sec_path_mab_route_for_path_mab(self, current_epoch_selected_path: sppm.SimPath, batch_size: int):
+        source_end_host = current_epoch_selected_path.node_list[0].actual_node
+        destination_end_host = current_epoch_selected_path.node_list[-1].actual_node
+
+        if isinstance(source_end_host, SimEndHost):
+            source_id = source_end_host.index
+        else:
+            raise ValueError("source not end host")
+        if isinstance(destination_end_host, SimEndHost):
+            destination_id = destination_end_host.index
+        else:
+            raise ValueError("destinatio not end host")
+
+        link_identifiers_count = len(current_epoch_selected_path.pv_routers) + 1
+        node_ids_count = len(current_epoch_selected_path.pv_routers) + 1
+
+        header_list = [current_epoch_selected_path.path_id, source_id, destination_id,
+                       batch_size, link_identifiers_count, node_ids_count, node_ids_count]
+        header_fmt = f"<{len(header_list)}I"
+        header_bytes = struct.pack(header_fmt, *header_list)
+
+        payload_list = []
+        for interface in current_epoch_selected_path.interfaces:
+            payload_list.append(interface.link_identifier)
+
+        for node in current_epoch_selected_path.pv_routers:
+            payload_list.append(node.index)
+        payload_list.append(destination_id)
+
+        payload_format = f"<{len(payload_list)}I"
+        payload_bytes = struct.pack(payload_format, *payload_list)
+
+        self.netlink_client.send_netlink_data_and_retrieve_string(header_bytes + payload_bytes,
+                                                                  tm.NetlinkMessageType.CMD_SET_SEC_PATH_MAB_ROUTE)
+
+    def reset_sec_path_mab_route_for_path_mab(self):
+        self.netlink_client.send_netlink_data_and_retrieve_string("",
+                                                                  tm.NetlinkMessageType.CMD_RESET_SEC_PATH_MAB_ROUTE)
 
     def reset_sec_path_mab_route_for_fixed_batch(self, batch_size: int, counts: List[int]):
-        final_string = f"{batch_size}"
+        result_list = [batch_size]
         for count in counts:
-            final_string += f",{count}"
-        self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_RESET_SEC_PATH_MAB_ROUTE)
+            result_list.append(count)
+        payload_format = f"<{len(result_list)}I"
+        payload_bytes = struct.pack(payload_format, *result_list)
+        self.netlink_client.send_netlink_data_and_retrieve_string(payload_bytes,
+                                                                  tm.NetlinkMessageType.CMD_RESET_SEC_PATH_MAB_ROUTE)
 
-    def reset_sec_path_mab_route_for_dynamic_batch(self):
-        self.netlink_client.send_netlink_data("", tm.NetlinkMessageType.CMD_RESET_SEC_PATH_MAB_ROUTE)
+    def reset_sec_path_mab_route_for_dynamic_batch(self, mini_batch_size: int):
+        result_list = [mini_batch_size]
+        payload_format = f"<I"
+        payload_bytes = struct.pack(payload_format, *result_list)
+        self.netlink_client.send_netlink_data_and_retrieve_string(payload_bytes,
+                                                                  tm.NetlinkMessageType.CMD_RESET_SEC_PATH_MAB_ROUTE)
 
     def set_router_type(self):
         final_string = f"{elm.env_loader.router_type}"
-        self.netlink_client.send_netlink_data(final_string,
-                                              tm.NetlinkMessageType.CMD_SET_ROUTER_TYPE)
+        self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                  tm.NetlinkMessageType.CMD_SET_ROUTER_TYPE)
 
     def set_sec_path_mab_type(self):
         final_string = f"{elm.env_loader.sec_path_mab_type}"
-        self.netlink_client.send_netlink_data(final_string,
-                                              tm.NetlinkMessageType.CMD_SET_SEC_PATH_MAB_TYPE)
+        self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                  tm.NetlinkMessageType.CMD_SET_SEC_PATH_MAB_TYPE)
 
     def set_malicious_params_from_env(self):
         final_string = (
             f"{elm.env_loader.malicious_params.corrupt_ratio_start},{elm.env_loader.malicious_params.corrupt_ratio_end},"
             f"{elm.env_loader.malicious_params.corrupt_special_packet_ratio_start},{elm.env_loader.malicious_params.corrupt_special_packet_ratio_end}")
 
-        self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_MALICIOUS_PARAMS)
+        self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                  tm.NetlinkMessageType.CMD_SET_MALICIOUS_PARAMS)
 
     def set_scheduled_malicious_params(self, employed_epoch: int, corrupt_ratio_start: int, corrupt_ratio_end: int,
                                        corrupt_special_packet_ratio_start: int, corrupt_special_packet_ratio_end: int):
         final_string = (f"{employed_epoch},{corrupt_ratio_start},{corrupt_ratio_end},"
                         f"{corrupt_special_packet_ratio_start},{corrupt_special_packet_ratio_end}")
-        self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_SCHDULED_MALICIOUS_PARAMS)
+        self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                  tm.NetlinkMessageType.CMD_SET_SCHDULED_MALICIOUS_PARAMS)
 
-    def retrieve_kernel_information_for_fixed_batch(self) -> Tuple[List[rfm.RetrievedFeedback], str]:
+    # ------------------------------------------- 原本正确的内容 -------------------------------------------
+    def retrieve_kernel_information_for_fixed_batch(self) -> Tuple[List[rfm.RetrievedFixedBatchFeedback], str]:
         retrieved_feedbacks = []
-        received_string = self.netlink_client.send_netlink_data("",
-                                                                tm.NetlinkMessageType.CMD_RETRIEVE_KERNEL_INFORMATION)
-
-        # print(f"received_string {received_string}", flush=True)
+        received_bytes, received_string = self.netlink_client.send_netlink_data_and_retrieve_bytes_and_string("",
+                                                                                                              tm.NetlinkMessageType.CMD_RETRIEVE_KERNEL_INFORMATION)
         if received_string.startswith("Err:"):
             return retrieved_feedbacks, received_string
         else:
-            feedbacks_in_str = list(received_string.split(","))
-            number_of_feedbacks = int(feedbacks_in_str.pop(0))
-            feedbacks_in_str.pop(len(feedbacks_in_str) - 1)
-
+            first_format = "<I"
+            first_size = struct.calcsize(first_format)
+            number_of_feedbacks = struct.unpack(first_format, received_bytes[:first_size])[0]
+            received_bytes = received_bytes[first_size:]
             for i in range(number_of_feedbacks):
+                header_format = "<III"
+                header_size = struct.calcsize(header_format)
+                epoch_id, sending_time_elapsed, number_of_sample_nodes = struct.unpack(header_format,
+                                                                                       received_bytes[:header_size])
+                received_bytes = received_bytes[header_size:]
+                later_format = f"<{number_of_sample_nodes * 2}I"
+                later_size = struct.calcsize(later_format)
+                retrieved_and_expected_ack_counts = struct.unpack(later_format, received_bytes[:later_size])
+                received_bytes = received_bytes[later_size:]
                 retrieved_ack_counts = []
                 expected_ack_counts = []
-                index = 0
-                number_of_sample_nodes = 0
-                epoch_id = -1
-                sending_time_elapsed = -1
-                while True:
-                    if index == 0:
-                        epoch_id = int(feedbacks_in_str[index])
-                    elif index == 1:
-                        sending_time_elapsed = int(feedbacks_in_str[index])
-                    elif index == 2:
-                        number_of_sample_nodes = int(feedbacks_in_str[index])
-                    else:
-                        if index % 2 == 1:
-                            retrieved_ack_counts.append(int(feedbacks_in_str[index]))
-                        else:
-                            expected_ack_counts.append(int(feedbacks_in_str[index]))
-                    if index == (2 + number_of_sample_nodes * 2):
-                        retrieved_feedbacks.append(rfm.RetrievedFeedback(epoch_id=epoch_id,
-                                                                         sending_time_elapsed=sending_time_elapsed,
-                                                                         number_of_sample_nodes=number_of_sample_nodes,
-                                                                         retrieved_ack_counts=retrieved_ack_counts,
-                                                                         expected_ack_counts=expected_ack_counts))
-                        break
-                    index += 1
-                feedbacks_in_str = feedbacks_in_str[3 + number_of_sample_nodes * 2:]
-            # 把 feedback 全部打印出来
+                for inner_index in range(0, len(retrieved_and_expected_ack_counts), 2):
+                    retrieved_ack_counts.append(retrieved_and_expected_ack_counts[inner_index])
+                    expected_ack_counts.append(retrieved_and_expected_ack_counts[inner_index + 1])
+                retrieved_feedback = rfm.RetrievedFixedBatchFeedback(epoch_id=epoch_id,
+                                                                     sending_time_elapsed=sending_time_elapsed,
+                                                                     number_of_sample_nodes=number_of_sample_nodes,
+                                                                     retrieved_ack_counts=retrieved_ack_counts,
+                                                                     expected_ack_counts=expected_ack_counts)
+                retrieved_feedbacks.append(retrieved_feedback)
             return retrieved_feedbacks, received_string
 
-    def retrieve_kernel_information_for_dynamic_batch(self) -> (int, int, int, int, int, List[int], List[int], bool):
+    # ------------------------------------------- 原本正确的内容 -------------------------------------------
+
+    def retrieve_kernel_information_for_dynamic_batch(self) -> rfm.RetrievedDynamicBatchFeedback:
         final_string = f""
-        received_string = self.netlink_client.send_netlink_data(final_string,
-                                                                tm.NetlinkMessageType.CMD_RETRIEVE_KERNEL_INFORMATION)
-        received_string = str(received_string)
+        received_bytes, received_string = self.netlink_client.send_netlink_data_and_retrieve_bytes_and_string(
+            final_string,
+            tm.NetlinkMessageType.CMD_RETRIEVE_KERNEL_INFORMATION)
         if received_string.startswith("Err:"):
-            return -1, 0, 0, 0, 0, [], [], False
+            retrieved_feedback = rfm.RetrievedDynamicBatchFeedback(epoch_id=-1,
+                                                                   collect_enough_ack_time_elapsed=0,
+                                                                   reach_timeout_time_elapsed=0,
+                                                                   number_of_sampling_packets=0,
+                                                                   number_of_unsamping_packets=0,
+                                                                   retrieved_ack_counts=[],
+                                                                   expected_ack_counts=[],
+                                                                   retrieved=False)
+            return retrieved_feedback
         else:
-            # print("received string: ", received_string, flush=True)
-            epoch_id_and_acks_in_str = received_string.split(",")
-            received_acks = []
-            expected_acks = []
-            epoch_id = -1
-            collect_enough_ack_time_elapsed = 0
-            reach_timeout_time_elapsed = 0
-            number_of_sampling_packets = 0
-            number_of_unsamping_packets = 0
-            for index in range(len(epoch_id_and_acks_in_str)):
-                if index == 0:
-                    epoch_id = int(epoch_id_and_acks_in_str[index])
-                elif index == 1:
-                    collect_enough_ack_time_elapsed = int(epoch_id_and_acks_in_str[index])
-                elif index == 2:
-                    reach_timeout_time_elapsed = int(epoch_id_and_acks_in_str[index])
-                elif index == 3:
-                    number_of_sampling_packets = int(epoch_id_and_acks_in_str[index])
-                elif index == 4:
-                    number_of_unsamping_packets = int(epoch_id_and_acks_in_str[index])
-                else:
-                    if index % 2 == 1:
-                        received_acks.append(int(epoch_id_and_acks_in_str[index]))
-                    else:
-                        expected_acks.append(int(epoch_id_and_acks_in_str[index]))
-            # print(f"retrieved epoch: {epoch_id} received_acks: {received_acks} expected_acks: {expected_acks}", flush=True)
-            return (epoch_id, collect_enough_ack_time_elapsed, reach_timeout_time_elapsed,
-                    number_of_sampling_packets, number_of_unsamping_packets,
-                    received_acks, expected_acks, True)
+            header_format = "<6I"
+            header_size = struct.calcsize(header_format)
+            epoch_id, collect_enough_ack_time_elapsed, reach_timeout_time_elapsed, number_of_sampling_packets, number_of_unsamping_packets, number_of_sample_nodes = struct.unpack(
+                header_format, received_bytes[:header_size])
+            received_bytes = received_bytes[header_size:]
+
+            later_format = f"<{number_of_sample_nodes * 2}I"
+            later_size = struct.calcsize(later_format)
+            retrieved_and_expected_ack_counts = struct.unpack(later_format, received_bytes[:later_size])
+            retrieved_ack_counts = []
+            expected_ack_counts = []
+            for inner_index in range(0, len(retrieved_and_expected_ack_counts), 2):
+                retrieved_ack_counts.append(retrieved_and_expected_ack_counts[inner_index])
+                expected_ack_counts.append(retrieved_and_expected_ack_counts[inner_index + 1])
+            retrieved_feedback = rfm.RetrievedDynamicBatchFeedback(epoch_id=epoch_id,
+                                                                   collect_enough_ack_time_elapsed=collect_enough_ack_time_elapsed,
+                                                                   reach_timeout_time_elapsed=reach_timeout_time_elapsed,
+                                                                   number_of_sampling_packets=number_of_sampling_packets,
+                                                                   number_of_unsamping_packets=number_of_unsamping_packets,
+                                                                   retrieved_ack_counts=retrieved_ack_counts,
+                                                                   expected_ack_counts=expected_ack_counts,
+                                                                   retrieved=True)
+            return retrieved_feedback
+
+    def retrieve_kernel_information_for_path_mab(self):
+        retrieved_feedbacks = []
+        received_bytes, received_string = self.netlink_client.send_netlink_data_and_retrieve_bytes_and_string(
+            "",
+            tm.NetlinkMessageType.CMD_RETRIEVE_KERNEL_INFORMATION,
+        )
+        if received_string.startswith("Err:"):
+            return retrieved_feedbacks, received_string
+        else:
+            first_format = "<I"
+            first_size = struct.calcsize(first_format)
+            number_of_feedbacks = struct.unpack(first_format, received_bytes[:first_size])[0]
+            received_bytes = received_bytes[first_size:]
+            for i in range(number_of_feedbacks):
+                header_format = "<IIIII"
+                header_size = struct.calcsize(header_format)
+                epoch_id, sending_time_elapsed, number_of_sample_nodes, retrieved_ack_count, expected_ack_count = struct.unpack(
+                    header_format,
+                    received_bytes[:header_size])
+                received_bytes = received_bytes[header_size:]
+                retrieved_feedback = rfm.RetrievedPathMabFeedback(epoch_id=epoch_id,
+                                                                  sending_time_elapsed=sending_time_elapsed,
+                                                                  number_of_sample_nodes=number_of_sample_nodes,
+                                                                  retrieved_ack_count=retrieved_ack_count,
+                                                                  expected_ack_count=expected_ack_count)
+                retrieved_feedbacks.append(retrieved_feedback)
+            return retrieved_feedbacks, received_string
 
     def set_min_ack_for_rtt_estimation(self, value):
         final_string = f"{value}"
-        self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_MIN_ACK_FOR_RTT_ESTIMATION)
+        self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                  tm.NetlinkMessageType.CMD_SET_MIN_ACK_FOR_RTT_ESTIMATION)
 
-    def set_best_path_id_for_source(self, best_path_id: int):
+    def set_best_path_id_and_regret_values_for_source(self, best_path_id: int, regret_values: List[int]):
         final_string = f"{best_path_id}"
-        self.netlink_client.send_netlink_data(final_string, tm.NetlinkMessageType.CMD_SET_BEST_PATH_ID_FOR_SOURCE)
+        for item in regret_values:
+            final_string += f",{item}"
+        self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                  tm.NetlinkMessageType.CMD_SET_BEST_PATH_ID_FOR_SOURCE)
 
     def set_malicious_params_from_event(self, scheduled_event: sem.ScheduledEvent):
         final_string = (
             f"{scheduled_event.corrupt_ratio_start},{scheduled_event.corrupt_ratio_end},"
             f"{scheduled_event.corrupt_special_packet_ratio_start},{scheduled_event.corrupt_special_packet_ratio_end}")
-        self.netlink_client.send_netlink_data(final_string,
-                                              tm.NetlinkMessageType.CMD_SET_MALICIOUS_PARAMS)
+        self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                  tm.NetlinkMessageType.CMD_SET_MALICIOUS_PARAMS)
 
     def get_per_packet_information(self) -> str:
-        return self.netlink_client.send_netlink_data("", tm.NetlinkMessageType.CMD_RETRIEVE_PER_PACKET_INFO)
+        return self.netlink_client.send_netlink_data_and_retrieve_string("",
+                                                                         tm.NetlinkMessageType.CMD_RETRIEVE_PER_PACKET_INFO)
+
+    def set_topology_information(self, number_of_hops: int, number_of_segments_per_hop: int) -> str:
+        final_string = f"{number_of_hops},{number_of_segments_per_hop}"
+        return self.netlink_client.send_netlink_data_and_retrieve_string(final_string, tm.NetlinkMessageType.CMD_SET_TOPOLOGY_INFORMATION)
+
+    def set_experiment_type(self, experiment_type: int):
+        final_string = f"{experiment_type}"
+        return self.netlink_client.send_netlink_data_and_retrieve_string(final_string, tm.NetlinkMessageType.CMD_SET_EXPERIMENT_TYPE)
+
+    def insert_session_table_entries(self, number_of_inserted_entries):
+        final_string = f"{number_of_inserted_entries}"
+        return self.netlink_client.send_netlink_data_and_retrieve_string(final_string, tm.NetlinkMessageType.CMD_INSERT_SESSION_TABLE_ENTRIES)
 
     def print_lir_routes_and_interfaces(self):
         """
@@ -452,6 +565,9 @@ class KernelConfigurator:
         self.set_node_id()
         self.set_router_type()
         self.set_sec_path_mab_type()
+        self.set_topology_information(elm.env_loader.number_of_hops,
+                                      elm.env_loader.number_of_segments_per_hop)
+        self.set_experiment_type(elm.env_loader.experiment_type)
         self.init_forwarding_table()
         self.init_routing_table()
         self.init_array_based_multipath_table()
@@ -472,6 +588,9 @@ class KernelConfigurator:
         self.insert_intermediate_multipath_output_link_identifiers()
         # -----  进行中间节点的 multipath_segments / output_link_identifiers 的插入 -----
 
+    # def create_uring_mananger(self):
+    #     self.uring_manager = UringManager(buffer_size=128)
+
 
 kernel_config_loader: Optional[KernelConfigurator] = None
 
@@ -480,3 +599,4 @@ def load_kernel_configuration():
     global kernel_config_loader
     kernel_config_loader = KernelConfigurator()
     kernel_config_loader.start()
+    # kernel_config_loader.create_uring_mananger()

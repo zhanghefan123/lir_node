@@ -12,28 +12,57 @@ class CheckThread(threading.Thread):
         super().__init__()
         self.timestamp = timestamp
 
+    def _current_time_ms(self) -> float:
+        return time.time() * 1000
+
+    def _event_deadline_ms(self, scheduled_event) -> float:
+        return sm.simulator_instance.sync_timestamp + scheduled_event.employed_epoch_or_timestamp_ms
+
+    def _handle_event(self, scheduled_event):
+        if elm.env_loader.node_id == 1:
+            if not scheduled_event.params_changed():
+                return
+            scheduled_event.execute()
+            best_path = osm.recalculate_score_and_find_best_path(sm.simulator_instance)
+            if sm.simulator_instance.packet_best_path_id == best_path.path_id:
+                return
+            kcm.kernel_config_loader.set_best_path_id_and_regret_values_for_source(
+                best_path_id=best_path.path_id,
+                regret_values=[item.regret_value for item in
+                               sm.simulator_instance.sim_graph.available_paths])
+            sm.simulator_instance.packet_best_path_id = best_path.path_id
+            print(
+                f"set best path for source = {sm.simulator_instance.packet_best_path_id} at timestamp: {scheduled_event.employed_epoch_or_timestamp_ms}",
+                flush=True)
+        else:
+            kcm.kernel_config_loader.set_malicious_params_from_event(scheduled_event)
+            print(
+                f"set malicious params for normal router {elm.env_loader.node_id} at timestamp: {scheduled_event.employed_epoch_or_timestamp_ms}",
+                flush=True)
+
+    def _process_due_events(self):
+        while True:
+            with sm.simulator_instance.scheduled_event_lock:
+                if not sm.simulator_instance.has_scheduled_events():
+                    return
+                next_event = sm.simulator_instance.peek_scheduled_event()
+                if self._current_time_ms() < self._event_deadline_ms(next_event):
+                    return
+                scheduled_event = sm.simulator_instance.pop_scheduled_event()
+            self._handle_event(scheduled_event)
+
     def run(self):
         print("start timestamp level thread", flush=True)
         while True:
-            # time_elapsed = (time.time() - sm.simulator_instance.sync_timestamp) * 1000
-            for scheduled_event in sm.simulator_instance.scheduled_event_list:
-                if sm.simulator_instance.sync_timestamp + scheduled_event.employed_epoch_or_timestamp_ms <= (time.time() * 1000):
-                    scheduled_event = sm.simulator_instance.scheduled_event_list.pop(0)
-                    if elm.env_loader.node_id == 1:  # 如果是源, 那么就进行最优路径的判断, 然后进行设置
-                        scheduled_event.execute()
-                        best_path = osm.recalculate_score_and_find_best_path(sm.simulator_instance)
-                        if sm.simulator_instance.packet_best_path_id == best_path.path_id:
-                            pass
-                        else:
-                            kcm.kernel_config_loader.set_best_path_id_for_source(best_path_id=best_path.path_id)
-                            sm.simulator_instance.packet_best_path_id = best_path.path_id
-                            print(
-                                f"set best path for source = {sm.simulator_instance.packet_best_path_id} at timestamp: {scheduled_event.employed_epoch_or_timestamp_ms}",
-                                flush=True)
-                    else:  # 如果不是源, 那么就进行设置
-                        kcm.kernel_config_loader.set_malicious_params_from_event(scheduled_event)
-                        print(f"set malicious params for normal router {elm.env_loader.node_id} at timestamp: {scheduled_event.employed_epoch_or_timestamp_ms}", flush=True)
-            if len(sm.simulator_instance.scheduled_event_list) == 0:
-                print("end timestamp level thread", flush=True)
-                break
-            time.sleep(0.1 / 1000.0)  # sleep for 10 ms
+            with sm.simulator_instance.scheduled_event_lock:
+                if not sm.simulator_instance.has_scheduled_events():
+                    break
+                next_deadline_ms = self._event_deadline_ms(sm.simulator_instance.peek_scheduled_event())
+
+            if self._current_time_ms() >= next_deadline_ms:
+                self._process_due_events()
+                continue
+
+            time.sleep((next_deadline_ms - self._current_time_ms()) / 1000.0)
+
+        print("end timestamp level thread", flush=True)

@@ -1,5 +1,5 @@
 import datetime
-from modules.online.entities.retrieved_feedback import RetrievedFeedback
+from modules.online.entities.retrieved_feedback import RetrievedFixedBatchFeedback
 from modules.online.steps import simulator as sem
 from modules.online.entities import sim_path as sppm
 from typing import List
@@ -12,7 +12,7 @@ from modules.kernel import kernel_configurator as kcm
 
 
 def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulator,
-                                                                 current_epoch_selected_path: sppm.SimPath) -> List[RetrievedFeedback]:
+                                                                 current_epoch_selected_path: sppm.SimPath) -> List[RetrievedFixedBatchFeedback]:
     """
     进行真实的数据包的转发
     :return:
@@ -21,7 +21,6 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
     # --------------------------------------------------------------------------------------------------------------------------------------------
     if len(sm.old_epoch_path_list) > 0:
         retrieved_feedbacks, received_string = kcm.kernel_config_loader.retrieve_kernel_information_for_fixed_batch()
-        sm.sim_graph.received_string_list.append(received_string)
         if len(retrieved_feedbacks) > 0:  # 如果大于 0 说明进行了 feedback 的获取
             for retrieved_feedback in retrieved_feedbacks:
                 old_epoch_selected_path = sm.old_epoch_path_list.pop(0)
@@ -53,7 +52,7 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
     if (sm.latest_selected_path is None) or (
             sm.latest_selected_path.description != current_epoch_selected_path.description):
         # 获取批次大小
-        batch_size = sm.simulator_params.number_of_pkts_per_link * (
+        batch_size = sm.simulator_params.number_of_pkts_per_link_or_batch_size * (
                 len(current_epoch_selected_path.pv_routers) + 1)
         # 计算每个节点的采样大小
         counts = cm.calc_cascade_sample_counts(batch_size, [1.0] * len(delivery_ratio_list))
@@ -66,7 +65,7 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
     else:
         # 如果路径相同, 只需要进行路径的重置即可
         # 获取批次大小
-        batch_size = sm.simulator_params.number_of_pkts_per_link * (
+        batch_size = sm.simulator_params.number_of_pkts_per_link_or_batch_size * (
                 len(current_epoch_selected_path.pv_routers) + 1)
         # 计算每个节点的采样大小
         counts = cm.calc_cascade_sample_counts(batch_size, [1.0] * len(delivery_ratio_list))
@@ -74,7 +73,7 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_normal(sm: sem.Simulat
         kcm.kernel_config_loader.reset_sec_path_mab_route_for_fixed_batch(batch_size, counts)
 
     # 进行实际的数据包的发送
-    sm.client_detailed_info.batch_size = sm.simulator_params.number_of_pkts_per_link * (
+    sm.client_detailed_info.batch_size = sm.simulator_params.number_of_pkts_per_link_or_batch_size * (
             len(current_epoch_selected_path.pv_routers) + 1)
     if sm.udp_other_client is None:
         sm.udp_other_client = uocm.UdpOtherClient(sm.client_detailed_info)
@@ -154,12 +153,14 @@ def start_fixed_batch_normal(sm: sem.Simulator):
                 if directed_abs_link.description not in directed_abs_links_mapping:
                     directed_abs_link.illegal_ratios.append(0.0)
 
-            # 计算无偏估计
+            # 计算无偏估计（使用发送该 epoch 时的探索概率，避免同批多条 feedback 时用已更新后的概率）
+            send_epoch_prob_idx = retrieved_feedback.epoch_id - 1
             for directed_pv_link in sm.sim_graph.sim_directed_abs_links:
                 if directed_pv_link.description in directed_abs_links_mapping:
                     illegal_ratio = directed_pv_link.illegal_ratios[-1]
+                    link_explore_prob_at_send = directed_pv_link.sending_epoch_probabilities[send_epoch_prob_idx]
                     rectified_loss = osm.calculate_rectified_loss(sm, illegal_ratio,
-                                                                  directed_pv_link.explore_probabilities[-1])
+                                                                  link_explore_prob_at_send)
                     directed_pv_link.rectified_losses.append(rectified_loss)
                 else:
                     rectified_loss = 0.0

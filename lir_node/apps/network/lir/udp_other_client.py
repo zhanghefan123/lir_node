@@ -30,7 +30,7 @@ class UdpOtherClient:
     def create_udp_socket_and_set_sockopt(self, destinations: List):
         """
         创建 udp_socket 并设置 socket 选项
-        设置选项格式
+        设置选项格式n
         :return: 创建好的并且设置好选项的 udp_socket
         """
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

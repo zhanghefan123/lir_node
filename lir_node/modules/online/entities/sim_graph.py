@@ -48,6 +48,7 @@ class SimGraph:
         self.per_packet_selected_path: List[int] = []
         self.per_packet_best_path: List[int] = []
         self.per_packet_timestamp: List[int] = []
+        self.per_packet_regret: List[int] = []
         self.received_string_list: List[str] = []
         # ------------------------ fixed/dynamic batch 共享参数 ------------------------
 
@@ -119,7 +120,7 @@ class SimGraph:
         if not self.destination_node:
             raise ValueError(f"load destination failed: {dest_name} not found")
 
-    def load_link_params(self, link_type: str, link_params: List[Any]):
+    def load_abstract_link_params(self, link_params: List[Any]):
         """处理任意类型的 abstract links"""
         for link_param in link_params:
             source_node_name = rm.resolve_sim_node_name(link_param.source_node)
@@ -130,9 +131,12 @@ class SimGraph:
             if not source_abs_node:
                 raise ValueError(f"cannot find source sim abstract node, name: {source_node_name}")
 
-            intermediate_abs_node = self.sim_abstract_nodes_mapping.get(intermediate_node_name)
-            if not intermediate_abs_node:
-                raise ValueError(f"cannot find intermediate sim abstract node, name: {intermediate_node_name}")
+            if intermediate_node_name != "virtual":
+                intermediate_abs_node = self.sim_abstract_nodes_mapping.get(intermediate_node_name)
+                if not intermediate_abs_node:
+                    raise ValueError(f"cannot find intermediate sim abstract node, name: {intermediate_node_name}")
+            else:
+                intermediate_abs_node = None
 
             target_abs_node = self.sim_abstract_nodes_mapping.get(target_node_name)
             if not target_abs_node:
@@ -140,8 +144,9 @@ class SimGraph:
 
             link_desc = f"{source_node_name}->{intermediate_node_name}->{target_node_name}"
 
-            link = sdlm.SimDirectedAbsLink(link_type, link_desc, source_abs_node,
+            link = sdlm.SimDirectedAbsLink(link_desc, source_abs_node,
                                            intermediate_abs_node,
+                                           intermediate_node_name,
                                            target_abs_node)
 
             self.sim_directed_abs_links.append(link)
@@ -151,9 +156,11 @@ class SimGraph:
                 raise ValueError(f"duplicate link desc: {link_desc}")
 
     def load_access_links_and_pv_links_params(self):
-        """加载图中的 accessLink 和 pvLink"""
-        self.load_link_params("SimDirectedAccessLink", self.graph_params.access_links)
-        self.load_link_params("SimDirectedPvLink", self.graph_params.pv_links)
+        """
+        进行 abstract segment 的加载
+        :return:
+        """
+        self.load_abstract_link_params(self.graph_params.pv_links)
 
     def load_real_links_from_link_params(self):
         """从 GraphParams 中的链路参数信息中加载图中的链路"""

@@ -16,7 +16,7 @@ from modules.kernel import kernel_configurator as kcm
 from defined_types import types as tmm
 from modules.online.steps import simulator as sm
 from modules.online.steps import start_simulator as ssm
-from defined_types import types as dtm
+from modules.online.types import types as tm
 
 flask_instance = Flask(__name__)
 
@@ -51,19 +51,17 @@ def flask_modify_bloom_filter_paramters():
 
 def start_client_core(data):
     client_detailed_info = ClientDetailedInfo()
-
-    client_detailed_info.selected_network_layer = data["selected_network_layer"]
     client_detailed_info.destination_port = data["destination_port"]
-    client_detailed_info.transmission_pattern = data["transmission_pattern"]
-
     client_detailed_info.file_size = data["file_size"]
     client_detailed_info.processes = data["processes"]
     client_detailed_info.buffer_size = data["buffer_size"]
     client_detailed_info.message_size = data["message_size"]
     client_detailed_info.batch_size = data["batch_size"]
 
-    client_detailed_info.destinations = data["destinations"]
     client_detailed_info.content = data["content"]
+    client_detailed_info.destinations = data["destinations"]
+    client_detailed_info.selected_network_layer = tmm.NetworkLayer.turn_str_into_type(data["selected_network_layer"])
+    client_detailed_info.transmission_pattern = tmm.TransmissionType.turn_str_into_type(data["transmission_pattern"])
 
     ucm.start_client(client_detailed_info)
 
@@ -85,14 +83,17 @@ def flask_start_client():
 
 def start_server_core(data):
     server_detailed_info = ServerDetailedInfo()
-    server_detailed_info.number_of_processes = data["processes"]
-    server_detailed_info.selected_network_layer = data["selected_network_layer"]
+    server_detailed_info.selected_number_of_processes = data["processes"]
     server_detailed_info.selected_listen_port = data["listen_port"]
-    server_detailed_info.selected_server_type = data["server_type"]
-    server_detailed_info.interface_name = data["interface"]
     server_detailed_info.simulation_index = data["simulation_index"]
     server_detailed_info.number_of_destinations = data["number_of_destinations"]
-    server_detailed_info.ip_version = data["ip_version"]
+    server_detailed_info.selected_interface_name = data["interface"]
+    server_detailed_info.selected_experiment_name = data["experiment_name"]
+    server_detailed_info.selected_ip_version = tmm.IpVersion.turn_str_into_type(data["ip_version"])
+    server_detailed_info.selected_network_layer = tmm.NetworkLayer.turn_str_into_type(data["selected_network_layer"])
+    server_detailed_info.selected_server_type = tmm.ServerType.turn_str_into_type(data["server_type"])
+
+    print(f"selected experiment name: {data['experiment_name']}", flush=True)
 
     usm.start_server(server_detailed_info)
 
@@ -115,8 +116,7 @@ def flask_start_server():
 def init_osmd_core(data):
     # 进行 simulator params 的设置
     simulator_params = sm.SimulatorParams()
-    simulator_params.number_of_epochs = data["number_of_epochs"]
-    simulator_params.number_of_pkts_per_link = data["number_of_pkts_per_link"]
+    simulator_params.number_of_pkts_per_link_or_batch_size = data["number_of_pkts_per_link"]
     simulator_params.mini_batch_size = data["mini_batch_size"]
     simulator_params.learning_rate = data["learning_rate"]
     simulator_params.minimum_delivery_ratio = data["minimum_delivery_ratio"]
@@ -179,42 +179,6 @@ def flask_start_osmd():
     return jrm.get_json_response_from_map(response_data, 200)
 
 
-# def start_retrieve_acks_core():
-#     if sm.simulator_instance is None:
-#         print("simulator_instance is none", flush=True)
-#     else:
-#         if elm.env_loader.sec_path_mab_type == dtm.SecPathMabType.SEC_PATH_MAB_STRATEGY_FIXED_BATCH:
-#             epoch_id, sending_time_elapsed, received_ack_counts, expected_ack_counts, retrieved = kcm.kernel_config_loader.retrieve_kernel_information_for_fixed_batch()
-#             if retrieved:
-#                 print(f"epoch_id: {epoch_id}, "
-#                       f"sending_time_elapsed: {sending_time_elapsed}, "
-#                       f"received_ack_counts: {received_ack_counts}, "
-#                       f"expected_ack_counts: {expected_ack_counts}", flush=True)
-#             else:
-#                 print("not retrieved", flush=True)
-#         else:
-#             epoch_id, collect_enough_acks_time_elapsed, reach_timeout_time_elapsed, current_epoch_sent_packets, received_ack_counts, expected_ack_counts, retrieved = kcm.kernel_config_loader.retrieve_kernel_information_for_dynamic_batch()
-#             if retrieved:
-#                 print(f"epoch_id: {epoch_id}, "
-#                       f"collect_enough_acks_time_elapsed: {collect_enough_acks_time_elapsed}, "
-#                       f"sending_time_elapsed: {reach_timeout_time_elapsed}, "
-#                       f"current_epoch_sent_packets: {current_epoch_sent_packets}, "
-#                       f"received_ack_counts: {received_ack_counts}, "
-#                       f"expected_ack_counts: {expected_ack_counts}",
-#                       flush=True)
-#             else:
-#                 print("not retrieved", flush=True)
-
-
-# @flask_instance.route("/startRetrieveAcks", methods=["POST"])
-# def flask_start_retrieve_acks():
-#     start_retrieve_acks_core()
-#     response_data = {
-#         "status": "success"
-#     }
-#     return jrm.get_json_response_from_map(response_data, 200)
-
-
 def set_scheduled_malicious_params_core(data):
     employed_epoch_or_timestamp_ms = data["employed_epoch_or_timestamp_ms"]
     set_node_id = data["node_id"]
@@ -235,7 +199,8 @@ def set_scheduled_malicious_params_core(data):
         normal_router = sm.simulator_instance.sim_graph.sim_abstract_nodes_mapping[
             f"NormalRouter-{set_node_id}"].actual_node
         if isinstance(normal_router, snrm.SimNormalRouter):
-            scheduled_event = sem.ScheduledEvent(set_node_id, normal_router, employed_epoch_or_timestamp_ms, corrupt_ratio_start, corrupt_ratio_end,
+            scheduled_event = sem.ScheduledEvent(set_node_id, normal_router, employed_epoch_or_timestamp_ms,
+                                                 corrupt_ratio_start, corrupt_ratio_end,
                                                  corrupt_special_packet_ratio_start, corrupt_special_packet_ratio_end)
             print(f"set scheduled malicious params for source: {corrupt_ratio_start},{corrupt_ratio_end},"
                   f"{corrupt_special_packet_ratio_start},{corrupt_special_packet_ratio_end}", flush=True)
@@ -244,7 +209,8 @@ def set_scheduled_malicious_params_core(data):
     else:
         raise RuntimeError("could not resolve scheduled malicious params")
     # 源节点插入 event (为了查出最优路径), 其他节点插入 event (为了进行 corrupt ratio 的设置)
-    sm.simulator_instance.scheduled_event_list.append(scheduled_event)
+    with sm.simulator_instance.scheduled_event_lock:
+        sm.simulator_instance.push_scheduled_event(scheduled_event)
 
 
 @flask_instance.route("/setSchduledMaliciousParams", methods=["POST"])
@@ -271,5 +237,25 @@ def start_sync_core(data):
     timestamp = data["current_timestamp"]
     dt = datetime.fromtimestamp(timestamp / 1000)
     sm.simulator_instance.sync_timestamp = dt.timestamp() * 1000
-    sm.simulator_instance.check_thread = CheckThread(dt)
-    sm.simulator_instance.check_thread.start()
+    if elm.env_loader.experiment_type == tm.SecPathMabExperimentType.TYPE_REGRET:
+        sm.simulator_instance.check_thread = CheckThread(dt)
+        sm.simulator_instance.check_thread.start()
+    elif elm.env_loader.experiment_type == tm.SecPathMabExperimentType.TYPE_THROUGHPUT:
+        print("experiment_type == TYPE_THROUGHPUT / do not start sync core", flush=True)
+    else:
+        raise ValueError("unsupported experiment_type")
+
+
+@flask_instance.route("/insertSessionTableEntries")
+def insert_session_table_entries():
+    data = json.loads(request.data)
+    insert_session_table_entries_core(data)
+    response_data = {
+        "status": "success"
+    }
+    return jrm.get_json_response_from_map(response_data, 200)
+
+
+def insert_session_table_entries_core(data):
+    number_of_entries = data["number_of_entries"]
+    kcm.kernel_config_loader.insert_session_table_entries(number_of_entries)

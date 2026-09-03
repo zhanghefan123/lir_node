@@ -1,3 +1,5 @@
+import os
+import re
 import time
 import socket
 from defined_types import types as tm
@@ -119,9 +121,23 @@ class UdpServer:
         # 进行接口名的获取
         selected_interface_name = self.server_detailed_info.selected_interface_name
 
+        # 只获取一个
+        # rx_bytes_start = irm.get_interface_rx_bytes(interface_name=selected_interface_name)
+
+        pattern = re.compile(r"^ln\d+_idx\d+$")
         # 进行接收数据量的获取
-        # rx_bytes_start = 0
-        rx_bytes_start = irm.get_interface_rx_bytes(interface_name=selected_interface_name)
+        rx_bytes_start = 0
+        interfaces = os.listdir("/sys/class/net")
+        # 筛选 ln{}_idx{} 形式的接口
+        target_interfaces = [
+            iface for iface in interfaces
+            if pattern.match(iface)
+        ]
+        for interface_name in target_interfaces:
+            rx_bytes_start += irm.get_interface_rx_bytes(
+                interface_name=interface_name
+            )
+
         # rx_bytes_start += irm.get_interface_rx_bytes(interface_name="ln26_idx1")
         # rx_bytes_start += irm.get_interface_rx_bytes(interface_name="ln26_idx2")
         # rx_bytes_start += irm.get_interface_rx_bytes(interface_name="ln26_idx3")
@@ -138,7 +154,7 @@ class UdpServer:
         multiple_processes_lock = Lock()
 
         # 进行进程的启动
-        for index in range(self.server_detailed_info.number_of_processes):
+        for index in range(self.server_detailed_info.selected_number_of_processes):
             current_port = self.server_detailed_info.selected_listen_port + index
             socket_tmp = self.create_socket(current_port)
             server_process_tmp = Process(target=self.handle_file_server, args=(socket_tmp, received_packets,
@@ -151,8 +167,14 @@ class UdpServer:
             server_process.join()
 
         time.sleep(5)
-        # rx_bytes_end = 0
-        rx_bytes_end = irm.get_interface_rx_bytes(interface_name=selected_interface_name)
+
+        rx_bytes_end = 0
+        for interface_name in target_interfaces:
+            rx_bytes_end += irm.get_interface_rx_bytes(
+                interface_name=interface_name
+            )
+
+        # rx_bytes_end = irm.get_interface_rx_bfytes(interface_name=selected_interface_name)
         # rx_bytes_end += irm.get_interface_rx_bytes(interface_name="ln26_idx1")
         # rx_bytes_end += irm.get_interface_rx_bytes(interface_name="ln26_idx2")
         # rx_bytes_end += irm.get_interface_rx_bytes(interface_name="ln26_idx3")
@@ -163,7 +185,10 @@ class UdpServer:
             selected_network_layer_str = tm.NetworkLayer.turn_type_into_str(
                 self.server_detailed_info.selected_network_layer)
             if self.server_detailed_info.selected_network_layer == tm.NetworkLayer.MULTIPATH_SELIR or self.server_detailed_info.selected_network_layer == tm.NetworkLayer.MULTICAST_OPT:
-                filename = f"/result/{selected_network_layer_str}_destinations_{self.server_detailed_info.number_of_destinations}_processes_{self.server_detailed_info.number_of_processes}.txt"
+                if self.server_detailed_info.selected_experiment_name == "":
+                    filename = f"/result/{selected_network_layer_str}_destinations_{self.server_detailed_info.number_of_destinations}_processes_{self.server_detailed_info.selected_number_of_processes}.txt"
+                else:
+                    filename = f"/result/{self.server_detailed_info.selected_experiment_name}"
                 result = f"Received total bytes: {received_total_bytes}\n"
                 result += f"Time Elapsed: {time_elapsed.value}\n"
                 result += f"Throughput: {received_total_bytes / time_elapsed.value / 1024 / 1024} MBps | {received_total_bytes / time_elapsed.value / 1024 / 1024 / 1024 * 8} Gbps\n"
@@ -173,7 +198,10 @@ class UdpServer:
                     f.write(result + "\n")
                 print(result, flush=True)
             else:
-                filename = f"/result/{selected_network_layer_str}_result_node_name_{env_loader.container_name}_processes_{self.server_detailed_info.number_of_processes}_index_{self.server_detailed_info.simulation_index}.txt"
+                if self.server_detailed_info.selected_experiment_name == "":
+                    filename = f"/result/{selected_network_layer_str}_result_node_name_{env_loader.container_name}_processes_{self.server_detailed_info.selected_number_of_processes}_index_{self.server_detailed_info.simulation_index}.txt"
+                else:
+                    filename = f"/result/{self.server_detailed_info.selected_experiment_name}"
                 result = ""
                 result += f"Received total bytes: {received_total_bytes} | Throughput: {received_total_bytes / time_elapsed.value / 1024 / 1024} MBps | {received_total_bytes / time_elapsed.value / 1024 / 1024 / 1024 * 8} Gbps"
                 result += "\n"

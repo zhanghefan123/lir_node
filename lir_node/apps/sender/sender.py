@@ -139,8 +139,10 @@ def send_file(sockets: List[socket.socket], dest_ip: str, dest_port: int, number
     for index in range(number_of_processes):
         modified_dest_port = dest_port + index
         socket_tmp = sockets[index]
-        tmp_process = Process(target=send_file_in_single_process, args=(
-            socket_tmp, dest_ip, modified_dest_port, index, file_size, buffer_size, send_packets, multiprocesses_lock))
+        tmp_process = Process(target=send_file_in_single_process,
+                              args=(socket_tmp, dest_ip, modified_dest_port,
+                                    index, file_size, buffer_size, send_packets,
+                                    multiprocesses_lock))
         processes.append(tmp_process)
 
     # 进行所有进程的启动

@@ -33,3 +33,13 @@ class RunningType:
 class RectifiedLossCalculateType:
     TYPE_DELIVERY_RATIO = 0  # 使用传统模式
     TYPE_SCALING = 1  # 使用放缩方式
+
+
+class SecPathMabExperimentType:
+    TYPE_REGRET = 0
+    TYPE_THROUGHPUT = 1
+
+
+class SecPathMabTopologyType:
+    NON_LINEAR = 0
+    LINEAR = 1

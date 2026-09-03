@@ -1,5 +1,4 @@
 import os
-from multiprocessing.managers import Value
 from typing import Optional
 from defined_types import types as tm
 
@@ -30,14 +29,18 @@ class EnvLoader:
         self.number_of_nodes = None  # 总共的节点数量是多少
         self.multipath_routing_type = None  # 多路径路由类型
         self.malicious_params: Optional[MaliciousParams] = None  # 恶意参数
+        self.number_of_hops = None
+        self.number_of_segments_per_hop = None
         self.router_type: int = -1  # 路由器的类型
         self.sec_path_mab_type: int = -1  # 选择的 sec_path_mab 策略的类型
+        self.experiment_type: int = 0  # 选择的实验类型
+        self.topology_type: int = 0  # 选择的拓扑类型
 
         self.load_from_env()
         if None in [self.listen_port, self.enable_frr, self.container_name, self.bf_effective_bits,
                     self.pvf_effective_bits, self.hash_seed, self.number_of_hash_functions, self.routing_table_type,
-                    self.transmission_type,
-                    self.node_id, self.graph_node_id, self.lir_single_time_encoding_count, self.enable_srv6]:
+                    self.transmission_type, self.node_id, self.graph_node_id, self.lir_single_time_encoding_count,
+                    self.enable_srv6]:
             # 如果全部存在值的话
             self.load_from_file()
         else:
@@ -45,6 +48,7 @@ class EnvLoader:
 
     def load_from_env(self):
         try:
+            # 获取一般类型参数
             self.listen_port = os.getenv("LISTEN_PORT")
             self.enable_frr = os.getenv("ENABLE_FRR")
             self.container_name = os.getenv("CONTAINER_NAME")
@@ -60,6 +64,10 @@ class EnvLoader:
             self.enable_srv6 = os.getenv("ENABLE_SRV6")  # 是否开启 SRv6 in str format
             self.number_of_nodes = int(os.getenv("NUMBER_OF_NODES"))  # 节点的数量
             self.multipath_routing_type = int(os.getenv("MULTIPATH_ROUTING_TYPE"))  # 多路径路由类型
+            self.number_of_hops = int(os.getenv("NUMBER_OF_HOPS"))
+            self.number_of_segments_per_hop = int(os.getenv("NUMBER_OF_SEGMENTS_PER_HOP"))
+            self.experiment_type = int(os.getenv("EXPERIMENT_TYPE"))
+            self.topology_type = int(os.getenv("TOPOLOGY_TYPE"))
 
             # 初始化恶意参数
             self.malicious_params = MaliciousParams()
@@ -79,8 +87,9 @@ class EnvLoader:
             # 初始化 sec_path_mab 策略的类型
             sec_path_mab_type = int(os.getenv("SEC_PATH_MAB_TYPE"))
             if (sec_path_mab_type != tm.SecPathMabType.SEC_PATH_MAB_STRATEGY_FIXED_BATCH) and (
-                    sec_path_mab_type != tm.SecPathMabType.SEC_PATH_MAB_STRATEGY_DYNAMIC_BATCH):
-                raise ValueError("unsupported router type")
+                    sec_path_mab_type != tm.SecPathMabType.SEC_PATH_MAB_STRATEGY_DYNAMIC_BATCH) and (
+                    sec_path_mab_type != tm.SecPathMabType.SEC_PATH_MAB_STRATEGY_PATH_BANDIT):
+                raise ValueError("unsupported sec_path_mab type")
             else:
                 self.sec_path_mab_type = sec_path_mab_type
 

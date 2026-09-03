@@ -23,19 +23,16 @@ def start_test(sm: sem.Simulator):
 
     # 5. 输出当前所选择的路径
     if elm.env_loader.sec_path_mab_type == dtm.SecPathMabType.SEC_PATH_MAB_STRATEGY_FIXED_BATCH:
-        batch_size = (len(current_epoch_selected_path.pv_routers) + 1) * sm.simulator_params.number_of_pkts_per_link
+        batch_size = (len(current_epoch_selected_path.pv_routers) + 1) * sm.simulator_params.number_of_pkts_per_link_or_batch_size
         delivery_ratios = [1] * (len(current_epoch_selected_path.pv_routers) + 1)
         counts = cm.calc_cascade_sample_counts(batch_size, delivery_ratios)
-        netlink_string = kcm.kernel_config_loader.set_sec_path_mab_route_for_fixed_batch(
+        kcm.kernel_config_loader.set_sec_path_mab_route_for_fixed_batch(
             current_epoch_selected_path,
             batch_size,
             counts)
     else:
         mini_batch_size = sm.simulator_params.mini_batch_size
-        netlink_string = kcm.kernel_config_loader.set_sec_path_mab_route_for_dynamic_batch(
+        kcm.kernel_config_loader.set_sec_path_mab_route_for_dynamic_batch(
             current_epoch_selected_path,
             mini_batch_size
         )
-
-    # 6. 进行 netlink string 的打印
-    print(f"netlink_string: {netlink_string}", flush=True)

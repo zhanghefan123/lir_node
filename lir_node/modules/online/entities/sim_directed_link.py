@@ -43,8 +43,11 @@ class SimDirectedRealLink(SimDirectedLinkBase):
 
 
 class SimDirectedAbsLink(SimDirectedLinkBase):
-    def __init__(self, link_type: str, pv_link_description: str,
-                 source: SimAbstractNode, intermediate: SimAbstractNode, target: SimAbstractNode):
+    def __init__(self, pv_link_description: str,
+                 source: SimAbstractNode,
+                 intermediate: SimAbstractNode,
+                 intermediate_node_name: str,
+                 target: SimAbstractNode):
         # 初始化父类，这里 Go 代码基类传的是 SimDirectedPvLink
         super().__init__(
             link_type=tm.SimDirectedLinkType.DirectedPvLink,  # SimDirectedLinkType.SIM_DIRECTED_PV_LINK
@@ -52,8 +55,9 @@ class SimDirectedAbsLink(SimDirectedLinkBase):
             target=target
         )
 
-        self.link_type = link_type  # 链路的具体类型
+        # self.link_type = link_type  # 链路的具体类型
         self.intermediate: SimAbstractNode = intermediate  # pvlink 的中间节点
+        self.intermediate_node_name: str = intermediate_node_name
         self.description = pv_link_description  # 对这个 directed pv link 的唯一描述
 
         # 到目前为止的跳变的次数

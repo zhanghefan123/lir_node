@@ -2,7 +2,7 @@ from modules.online.types import types as tm
 from modules.online.entities import sim_params as spm
 
 
-def resolve_sim_node_type(typeString: str) -> int:
+def resolve_sim_node_type(typeString: str):
     if typeString == "EndHost":
         return tm.SimNetworkNodeType.END_HOST
     elif typeString == "NormalRouter":
@@ -10,10 +10,13 @@ def resolve_sim_node_type(typeString: str) -> int:
     elif typeString == "PathValidationRouter":
         return tm.SimNetworkNodeType.PATH_VALIDATION_ROUTER
     else:
-        raise ValueError(f"unsupported node type: {typeString}")
+        return None
 
 
 def resolve_sim_node_name(nodeParam: spm.SimNodeParam) -> str:
     nodeType = resolve_sim_node_type(nodeParam.type)
-    nodeName = f"{nodeType}-{nodeParam.index}"
+    if nodeType is None:
+        nodeName = "virtual"
+    else:
+        nodeName = f"{nodeType}-{nodeParam.index}"
     return nodeName

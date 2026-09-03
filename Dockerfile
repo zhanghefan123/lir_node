@@ -8,5 +8,4 @@ COPY resources/requirements.txt /lir_node/requirements.txt
 
 RUN python -m pip install -r /lir_node/requirements.txt
 
-
 ENTRYPOINT ["python", "/lir_node/start.py", "container"]

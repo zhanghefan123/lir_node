@@ -1,18 +1,27 @@
 from modules.online.entities import sim_path as sppm
 from modules.online.types import types as tm
 from modules.online.steps import simulator as sem
-from typing import Dict
-import random
+from typing import Dict, List
 import math
 from modules.online.tools import probs as pm
+
+_EPSILON = 1e-9
 
 
 def recalculate_score_and_find_best_path(sm: sem.Simulator) -> sppm.SimPath:
     for sim_path in sm.sim_graph.available_paths:
         sim_path.calculate_score()
-    current_epoch_best_path = \
-        sorted(sm.sim_graph.available_paths, key=lambda current_sim_path: current_sim_path.score)[0]
-    return current_epoch_best_path
+    sorted_paths = sorted(sm.sim_graph.available_paths, key=lambda current_sim_path: current_sim_path.score)
+    current_score = -1
+    current_regret = -1
+    for sorted_path in sorted_paths:
+        if sorted_path.score > current_score:
+            current_regret += 1
+            sorted_path.regret_value = current_regret
+            current_score = sorted_path.score
+        else:
+            sorted_path.regret_value = current_regret
+    return sorted_paths[0]
 
 
 def calculate_rectified_loss(sm: sem.Simulator, illegal_ratio: float, link_explore_prob: float) -> float:
@@ -56,15 +65,12 @@ def init_all_edges_probabilities(sm: sem.Simulator):
 
 
 def determine_current_epoch_selected_path(sm: sem.Simulator, path_mapping: Dict[str, float]) -> sppm.SimPath:
-    path_probabilities = []
-    for sim_path in sm.sim_graph.available_paths:
-        probability = path_mapping.get(sim_path.description, 0.0)
-        path_probabilities.append(probability)
-
-    # 假设 probs.sample_discrete 已经被移植
+    path_probabilities = [
+        path_mapping.get(sim_path.description, 0.0)
+        for sim_path in sm.sim_graph.available_paths
+    ]
     selected_path_index = pm.sample_discrete(path_probabilities)
-    current_epoch_selected_path = sm.sim_graph.available_paths[selected_path_index]
-    return current_epoch_selected_path
+    return sm.sim_graph.available_paths[selected_path_index]
 
 
 def set_current_edges_probability(sm: sem.Simulator):
@@ -72,60 +78,63 @@ def set_current_edges_probability(sm: sem.Simulator):
         sim_abs_link.current_edge_probability = sim_abs_link.explore_probabilities[-1]
 
 
+def _extract_min_path_flow(links: List) -> float:
+    """Return min positive edge flow along a path, or 0 if any edge is depleted."""
+    min_prob = links[0].current_edge_probability
+    if min_prob <= _EPSILON:
+        return 0.0
+    for link in links[1:]:
+        prob = link.current_edge_probability
+        if prob <= _EPSILON:
+            return 0.0
+        if prob < min_prob:
+            min_prob = prob
+    return min_prob
+
+
+def _subtract_path_flow(links: List, flow: float) -> int:
+    """Subtract flow from path edges; return how many edges became depleted."""
+    depleted = 0
+    for link in links:
+        old_prob = link.current_edge_probability
+        new_prob = old_prob - flow
+        link.current_edge_probability = new_prob
+        if old_prob > _EPSILON and new_prob <= _EPSILON:
+            depleted += 1
+    return depleted
+
+
 def decompose_to_get_path_probabilities(sm: sem.Simulator) -> Dict[str, float]:
-    epsilon = 1e-9
-    path_mapping = {}
+    """
+    将边级探索概率分解为路径概率。
 
-    while True:
-        start_point = sm.sim_graph.sim_abstract_nodes_mapping[
-            sm.sim_graph.graph_params.source_dest_params.source]
-        current_path_desc = ""
-        current_path = []
-        minimum_edge_probability = float('inf')
+    直接遍历预计算的 available_paths，避免每轮随机游走和 NetworkX 出边查询；
+    复杂度从 O(P * L * 图查询) 降为 O(P * L) 每轮分解。
+    """
+    path_mapping: Dict[str, float] = {}
+    available_paths = sm.sim_graph.available_paths
+    active_edge_count = sum(
+        1 for link in sm.sim_graph.sim_directed_abs_links
+        if link.current_edge_probability > _EPSILON
+    )
 
-        while True:
-            all_output_edges = sm.sim_graph.find_all_output_edges(start_point)
-            moved = False
+    while active_edge_count > 0:
+        extracted = False
+        for sim_path in available_paths:
+            links = sim_path.directed_abs_links
+            if not links:
+                continue
 
-            available_edges = []
-            for output_edge in all_output_edges:
-                if output_edge.current_edge_probability > epsilon:
-                    available_edges.append(output_edge)
-                    moved = True
+            min_prob = _extract_min_path_flow(links)
+            if min_prob <= _EPSILON:
+                continue
 
-            if not moved:
-                break
-            else:
-                output_edge = random.choice(available_edges)
-                source_name = output_edge.source.get_sim_node_name()
-                normal_router_name = output_edge.intermediate.get_sim_node_name()
+            path_mapping[sim_path.description] = path_mapping.get(sim_path.description, 0.0) + min_prob
+            active_edge_count -= _subtract_path_flow(links, min_prob)
+            extracted = True
+            break
 
-                current_path_desc += f"{source_name}->{normal_router_name}->"
-                current_path.append(output_edge)
-                start_point = output_edge.target
-
-                if output_edge.current_edge_probability < minimum_edge_probability:
-                    minimum_edge_probability = output_edge.current_edge_probability
-
-            start_node_name = start_point.get_sim_node_name()
-            if start_node_name == sm.sim_graph.graph_params.source_dest_params.destination:
-                current_path_desc += start_node_name
-                path_mapping[current_path_desc] = path_mapping.get(current_path_desc,
-                                                                   0.0) + minimum_edge_probability
-
-                # 减去概率
-                for in_path_link in current_path:
-                    in_path_link.current_edge_probability -= minimum_edge_probability
-                break
-
-        # 判断当前是否还有链路概率 > 0
-        all_zero = True
-        for sim_abs_link in sm.sim_graph.sim_directed_abs_links:
-            if sim_abs_link.current_edge_probability > epsilon:
-                all_zero = False
-                break
-
-        if all_zero or not moved:  # 防死循环退出条件
+        if not extracted:
             break
 
     return path_mapping
@@ -176,3 +185,29 @@ def projection_back_to_legal_plane(sm: sem.Simulator, source, destination):
     for abstract_node in sm.sim_graph.sim_abstract_nodes:
         abstract_node.potential = 0.0
         abstract_node.flow = 0.0
+
+
+def init_all_paths_probabilities(sm: sem.Simulator):
+    """将每条可用路径初始化为均匀探索概率（路径级 OSMD，每条路径一个 arm）。"""
+    number_of_paths = len(sm.sim_graph.available_paths)
+    uniform_prob = 1.0 / number_of_paths if number_of_paths > 0 else 0.0
+    for sim_path in sm.sim_graph.available_paths:
+        sim_path.weights.append(1.0)
+        sim_path.explore_probabilities.append(uniform_prob)
+
+
+def determine_current_epoch_selected_path_direct(sm: sem.Simulator) -> sppm.SimPath:
+    """按路径探索概率直接采样，无需边级流分解。"""
+    path_probabilities = [sim_path.explore_probabilities[-1] for sim_path in sm.sim_graph.available_paths]
+    selected_path_index = pm.sample_discrete(path_probabilities)
+    return sm.sim_graph.available_paths[selected_path_index]
+
+
+def projection_paths_to_simplex(sm: sem.Simulator):
+    """将路径权重投影回概率单纯形（K 条路径的 OSMD 投影）。"""
+    total_weight = sum(sim_path.weights[-1] for sim_path in sm.sim_graph.available_paths)
+    if total_weight <= 0:
+        total_weight = 1.0
+    for sim_path in sm.sim_graph.available_paths:
+        prob = max(sim_path.weights[-1] / total_weight, 0.001)
+        sim_path.explore_probabilities.append(prob)

@@ -1,2 +1,5 @@
+import struct
+
 if __name__ == "__main__":
-    print([1, 2, 3, 4][3-10:3])
+    header_format = "<IQI"
+    print(struct.calcsize(header_format))

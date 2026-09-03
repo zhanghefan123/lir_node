@@ -1,4 +1,4 @@
-from modules.online.entities.retrieved_feedback import RetrievedFeedback
+from modules.online.entities.retrieved_feedback import RetrievedFixedBatchFeedback
 from modules.online.steps import simulator as sem
 from modules.online.entities import sim_path as sppm
 from typing import List
@@ -12,7 +12,7 @@ import math
 
 
 def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator,
-                                                               current_epoch_selected_path: sppm.SimPath) -> List[RetrievedFeedback]:
+                                                               current_epoch_selected_path: sppm.SimPath) -> List[RetrievedFixedBatchFeedback]:
     """
     进行真实的数据包的转发
     :return:
@@ -57,7 +57,7 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator
     if (sm.latest_selected_path is None) or (
             sm.latest_selected_path.description != current_epoch_selected_path.description):
         # 获取批次大小
-        batch_size = sm.simulator_params.number_of_pkts_per_link * (
+        batch_size = sm.simulator_params.number_of_pkts_per_link_or_batch_size * (
                 len(current_epoch_selected_path.pv_routers) + 1)
         # 计算每个节点的采样大小
         counts = cm.calc_cascade_sample_counts(batch_size, [1.0] * len(delivery_ratio_list))
@@ -70,7 +70,7 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator
     else:
         # 如果路径相同, 只需要进行路径的重置即可
         # 获取批次大小
-        batch_size = sm.simulator_params.number_of_pkts_per_link * (
+        batch_size = sm.simulator_params.number_of_pkts_per_link_or_batch_size * (
                 len(current_epoch_selected_path.pv_routers) + 1)
         # 计算每个节点的采样大小
         counts = cm.calc_cascade_sample_counts(batch_size, [1.0] * len(delivery_ratio_list))
@@ -78,7 +78,7 @@ def forward_real_packets_or_retrieve_acks_for_fixed_batch_deda(sm: sem.Simulator
         kcm.kernel_config_loader.reset_sec_path_mab_route_for_fixed_batch(batch_size, counts)
 
     # 进行实际的数据包的发送
-    sm.client_detailed_info.batch_size = sm.simulator_params.number_of_pkts_per_link * (
+    sm.client_detailed_info.batch_size = sm.simulator_params.number_of_pkts_per_link_or_batch_size * (
             len(current_epoch_selected_path.pv_routers) + 1)
     if sm.udp_other_client is None:
         sm.udp_other_client = uocm.UdpOtherClient(sm.client_detailed_info)

@@ -1,5 +1,7 @@
+import heapq
 import logging
-from typing import List, Set, Optional
+import threading
+from typing import List, Set, Optional, Tuple, Any
 from dataclasses import dataclass
 from modules.online.entities import sim_path as sppm
 from modules.online.entities.sim_path import SimPath
@@ -16,8 +18,7 @@ simulator_logger = logging.getLogger("ModuleSimulator")
 @dataclass
 class SimulatorParams:
     """Simulator 相关参数的配置类"""
-    number_of_epochs: int = -1  # 总的批次数量
-    number_of_pkts_per_link: int = -1  # 单个批次内部的包的数量
+    number_of_pkts_per_link_or_batch_size: int = -1  # 单个批次内部的包的数量
     mini_batch_size: int = -1  # 在 dynamic 发送的时候, 每个小 batch 的 size
     learning_rate: float = -1  # 学习率，控制每次更新权重的幅度
     minimum_delivery_ratio: float = -1  # 最小的交付率
@@ -47,7 +48,10 @@ class Simulator:
         self.simulator_init_steps: Set[str] = set()  # Go 中的 map[string]struct{} 在 Python 中是标准的 Set (集合)
         self.rectified_loss_calculating_type: str = tm.RectifiedLossCalculateType.TYPE_SCALING  # loss 计算方式
         self.sync_timestamp = 0
-        self.scheduled_event_list = []
+        # min-heap: (employed_epoch_or_timestamp_ms, seq, ScheduledEvent); earlier timestamps first
+        self.scheduled_event_heap: List[Tuple[int, int, Any]] = []
+        self._scheduled_event_seq = 0
+        self.scheduled_event_lock = threading.Lock()
         self.packet_best_path_id = 1
         self.check_thread = None
         self.epoch_queue = Queue()
@@ -76,6 +80,22 @@ class Simulator:
         self.learning_rate_list: List[float] = []
         self.window_size: int = 30
         # ----------------------------- deda 相关参数 -----------------------------
+
+    def push_scheduled_event(self, scheduled_event) -> None:
+        heapq.heappush(
+            self.scheduled_event_heap,
+            (scheduled_event.employed_epoch_or_timestamp_ms, self._scheduled_event_seq, scheduled_event),
+        )
+        self._scheduled_event_seq += 1
+
+    def peek_scheduled_event(self):
+        return self.scheduled_event_heap[0][2]
+
+    def pop_scheduled_event(self):
+        return heapq.heappop(self.scheduled_event_heap)[2]
+
+    def has_scheduled_events(self) -> bool:
+        return bool(self.scheduled_event_heap)
 
 
 # 全局 simulator
