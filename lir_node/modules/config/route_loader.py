@@ -1,8 +1,9 @@
 import os
-from typing import List
 from defined_types.types import PathValidationTransmissionType
 from modules.config import env_loader as elm
-from modules.config.env_loader import env_loader
+from modules.kernel import kernel_configurator as kcm
+from defined_types import types as tm
+from typing import List
 
 
 class Route:
@@ -12,7 +13,7 @@ class Route:
         :param source: 源头
         :param destination: 目的
         :param path_length: 路径长度
-        :param link_identifiers: 链路表示序列
+        :param link_identifiers: 链路表示序列s
         :param node_ids: 节点标识序列
         """
         self.source = source
@@ -29,7 +30,7 @@ class Route:
                 f"node_ids: {self.node_ids}")
 
 
-def load_routes() -> List[Route]:
+def load_routes(transmission_type: int):
     """
     加载路由条目
     :return: 路由条目系列
@@ -41,16 +42,16 @@ def load_routes() -> List[Route]:
     """
     # setting routes_file_path
     routes_file_path = "unknown"
-    if env_loader.transmission_type == PathValidationTransmissionType.UNICAST_TRANSMISSION_TYPE:
+    if transmission_type == PathValidationTransmissionType.UNICAST_TRANSMISSION_TYPE:
         routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/lir.txt"
-    elif env_loader.transmission_type == PathValidationTransmissionType.MULTIPATH_TRANSMISSION_TYPE:
+    elif transmission_type == PathValidationTransmissionType.MULTIPATH_TRANSMISSION_TYPE:
         routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/multipath.txt"
-    elif env_loader.transmission_type == PathValidationTransmissionType.MULTICAST_TRANSMISSION_TYPE:
+    elif transmission_type == PathValidationTransmissionType.MULTICAST_TRANSMISSION_TYPE:
         routes_file_path = f"/configuration/{elm.env_loader.container_name}/route/all_lir.txt"
-    elif env_loader.transmission_type == PathValidationTransmissionType.MAB_TRANSMISSION_TYPE:
+    elif transmission_type == PathValidationTransmissionType.MAB_TRANSMISSION_TYPE:
         print("mab does not need any route", flush=True)
     else:
-        raise ValueError(f"unsupported transmission type {env_loader.transmission_type}")
+        raise ValueError(f"unsupported transmission type {transmission_type}")
 
     # 路由条目
     routes = []
@@ -79,4 +80,47 @@ def load_routes() -> List[Route]:
                         node_ids.append(node_id)
                 route = Route(source, destination, path_length, link_identifiers, node_ids)
                 routes.append(route)
-    return routes
+    kcm.kernel_config_loader.lir_routes = routes
+
+
+def init_routing_table():
+    """
+    初始化路由表
+    :return:
+    """
+    if elm.env_loader.routing_table_type == tm.RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE:  # 代表是 array based routing table type
+        number_of_routes = len(kcm.kernel_config_loader.lir_routes) + 2
+        send_data = f"{tm.RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE},{number_of_routes}"
+        kcm.kernel_config_loader.netlink_client.send_netlink_data_and_retrieve_string(send_data,
+                                                                                      tm.NetlinkMessageType.CMD_INIT_ROUTING_TABLE)
+        print("init array based routing table", flush=True)
+    elif elm.env_loader.routing_table_type == tm.RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE:  # 代表是 hash based routing table type
+        number_of_buckets = 2000
+        send_data = f"{tm.RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE},{number_of_buckets}"
+        kcm.kernel_config_loader.netlink_client.send_netlink_data_and_retrieve_string(send_data,
+                                                                                      tm.NetlinkMessageType.CMD_INIT_ROUTING_TABLE)
+        print("init hash based routing table", flush=True)
+    else:
+        print("do not need to initialize routing table")
+
+
+def insert_routing_table_entries():
+    """
+    进行路由条目的插入
+    """
+    for lir_route in kcm.kernel_config_loader.lir_routes:
+        send_data = f"{lir_route.source},{lir_route.destination},{lir_route.path_length}"
+        for index in range(lir_route.path_length):
+            send_data += f",{lir_route.link_identifiers[index]},{lir_route.node_ids[index]}"
+        kcm.kernel_config_loader.netlink_client.send_netlink_data_and_retrieve_string(send_data,
+                                                                                      tm.NetlinkMessageType.CMD_INSERT_ROUTING_TABLE_ENTRY)
+
+
+def print_lir_routes():
+    """
+    打印 LiR 的路由条目和接口条目
+    """
+    print("----------------- ALL ROUTES -----------------")
+    for lir_route in kcm.kernel_config_loader.lir_routes:
+        print(lir_route, flush=True)
+    print("----------------- ALL ROUTES -----------------")

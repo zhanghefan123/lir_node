@@ -1,11 +1,9 @@
-import copy
 import os
 import struct
 from modules.config.env_loader import env_loader
 from modules.online.entities import sim_path as sppm
 from modules.netlink import netlink_client as ncm
 from modules.config import interface_loader as ilm
-from modules.config import route_loader as rlm
 from defined_types import types as tm
 from modules.online.entities.sim_end_host import SimEndHost
 from typing import List, Optional, Tuple
@@ -20,10 +18,8 @@ class KernelConfigurator:
         初始化 LiR 配置加载器
         """
         self.netlink_client = ncm.NetlinkClient()
-        self.lir_interfaces = ilm.load_interfaces()  # 这一步一定需要在之前完成
-        self.lir_routes = rlm.load_routes()  # 加载路由条目, if is the array based routing table (only need to store source routes)
-        ilm.load_lir_interface_ifindexes(self.lir_interfaces)  # 加载接口的 ifindex
-        self.print_lir_routes_and_interfaces()
+        self.lir_interfaces = []
+        self.lir_routes = []
 
     def set_node_id(self):
         """
@@ -31,26 +27,6 @@ class KernelConfigurator:
         """
         self.netlink_client.send_netlink_data_and_retrieve_string(f"{elm.env_loader.graph_node_id}",
                                                                   tm.NetlinkMessageType.CMD_SET_NODE_ID)
-
-    def init_routing_table(self):
-        """
-        初始化路由表
-        :return:
-        """
-        if elm.env_loader.routing_table_type == tm.RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE:  # 代表是 array based routing table type
-            number_of_routes = len(self.lir_routes) + 2
-            send_data = f"{tm.RoutingTableType.ARRAY_BASED_ROUTING_TABLE_TYPE},{number_of_routes}"
-            self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
-                                                                      tm.NetlinkMessageType.CMD_INIT_ROUTING_TABLE)
-            print("init array based routing table", flush=True)
-        elif elm.env_loader.routing_table_type == tm.RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE:  # 代表是 hash based routing table type
-            number_of_buckets = 2000
-            send_data = f"{tm.RoutingTableType.HASH_BASED_ROUTING_TABLE_TYPE},{number_of_buckets}"
-            self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
-                                                                      tm.NetlinkMessageType.CMD_INIT_ROUTING_TABLE)
-            print("init hash based routing table", flush=True)
-        else:
-            print("do not need to initialize routing table")
 
     def init_forwarding_table(self):
         """
@@ -61,40 +37,21 @@ class KernelConfigurator:
         self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
                                                                   tm.NetlinkMessageType.CMD_INIT_INTERFACE_TABLE)
 
-    def init_array_based_multipath_table(self):
-        """
-        初始化基于数组的 multipath_table
-        :return:
-        """
-        number_of_paths_file = f"/configuration/{elm.env_loader.container_name}/num_of_paths.txt"
-        number_of_paths = 0
-        if os.path.exists(number_of_paths_file):
-            with open(number_of_paths_file) as f:
-                number_of_paths = int(f.read())
-
-        file_path = f"/configuration/{elm.env_loader.container_name}/relationship.txt"
-        number_of_relationships = 0
-        if os.path.exists(file_path):
-            with open(file_path) as f:
-                number_of_relationships = len(f.readlines())
-        else:
-            pass
-        if elm.env_loader.routing_table_type == tm.RoutingTableType.ARRAY_BASED_MULTIPATH_TABLE_TYPE:
-            number_of_buckets = 100
-            finalString = f"{env_loader.multipath_routing_type},{number_of_buckets},{env_loader.number_of_nodes},{number_of_relationships},{number_of_paths}"
-            self.netlink_client.send_netlink_data_and_retrieve_string(finalString,
-                                                                      tm.NetlinkMessageType.CMD_INIT_MULTIPATH_TABLE)
-            print("init array based multipath table", flush=True)
-        else:
-            print("not init array based multipath table", flush=True)
-
     def init_selir(self):
         """
         初始化 selir 的信息
         :return:
         """
-        send_data = f"{elm.env_loader.pvf_effective_bits}"
+        send_data = f"{elm.env_loader.selir_type}"
         self.netlink_client.send_netlink_data_and_retrieve_string(send_data, tm.NetlinkMessageType.CMD_INIT_SELIR)
+
+    def init_epic(self):
+        """
+        初始化 epic 的信息
+        :return:
+        """
+        send_data = f"{elm.env_loader.epic_type}"
+        self.netlink_client.send_netlink_data_and_retrieve_string(send_data, tm.NetlinkMessageType.CMD_INIT_EPIC)
 
     def init_bloom_filter(self):
         """
@@ -109,16 +66,15 @@ class KernelConfigurator:
         self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
                                                                   tm.NetlinkMessageType.CMD_MODIFY_BLOOM_FILTER)
 
-    def insert_routing_table_entries(self):
-        """
-        进行路由条目的插入
-        """
-        for lir_route in self.lir_routes:
-            send_data = f"{lir_route.source},{lir_route.destination},{lir_route.path_length}"
-            for index in range(lir_route.path_length):
-                send_data += f",{lir_route.link_identifiers[index]},{lir_route.node_ids[index]}"
-            self.netlink_client.send_netlink_data_and_retrieve_string(send_data,
-                                                                      tm.NetlinkMessageType.CMD_INSERT_ROUTING_TABLE_ENTRY)
+    def reset_processing_time_statistics(self) -> str:
+        """清空当前节点的统计窗口，并开始记录后续数据报文。"""
+        return self.netlink_client.send_netlink_data_and_retrieve_string(
+            "", tm.NetlinkMessageType.CMD_RESET_PROCESSING_TIME_STATISTICS)
+
+    def retrieve_processing_time_statistics(self) -> str:
+        """停止当前节点的统计窗口，并返回内核累计结果。"""
+        return self.netlink_client.send_netlink_data_and_retrieve_string(
+            "", tm.NetlinkMessageType.CMD_RETRIEVE_PROCESSING_TIME_STATISTICS)
 
     def insert_interface_table_entries(self):
         """
@@ -146,103 +102,13 @@ class KernelConfigurator:
         self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
                                                                   tm.NetlinkMessageType.CMD_CLEAR_SEGMENT_LIST)
 
-    def insert_source_multipath_segments(self):
+    def clear_output_link_identifiers(self):
         """
-        进行所有的 segments 的插入
+        clear_output_link_identifiers
         :return:
         """
-        file_path = f"/configuration/{elm.env_loader.container_name}/multipath_segments.txt"
-        if os.path.exists(file_path):
-            with open(file_path) as f:
-                # 读取每一行
-                all_lines = f.readlines()
-                for line in all_lines:
-                    line = line.rstrip("\n")
-                    if line == "":
-                        continue
-                    else:
-                        self.netlink_client.send_netlink_data_and_retrieve_string(line,
-                                                                                  tm.NetlinkMessageType.CMD_SOURCE_INSERT_SEGMENT)
-
-    def insert_destination_routing_table_entries(self):
-        """
-        向目的节点进行paths的插入
-        :return:
-        """
-        file_path = f"/configuration/{elm.env_loader.container_name}/route/dest_multipath.txt"
-        if os.path.exists(file_path):
-            with open(file_path) as f:
-                # 读取每一行
-                all_lines = f.readlines()
-                for line in all_lines:
-                    line = line.rstrip("\n")
-                    if line == "":
-                        continue
-                    else:
-                        self.netlink_client.send_netlink_data_and_retrieve_string(line,
-                                                                                  tm.NetlinkMessageType.CMD_INSERT_DEST_ROUTING_TABLE_ENTRY)
-
-    def insert_source_multipath_output_link_identifiers(self):
-        """
-        设置多路径源的出接口
-        :return:
-        """
-        file_path = f"/configuration/{elm.env_loader.container_name}/multipath_output_link_identifiers.txt"
-        if os.path.exists(file_path):
-            with open(file_path) as f:
-                # 读取每一行
-                all_lines = f.readlines()
-                first_line = all_lines[0]
-                first_line = first_line.rstrip("\n")
-                self.netlink_client.send_netlink_data_and_retrieve_string(first_line,
-                                                                          tm.NetlinkMessageType.CMD_INSERT_OUTPUT_LINK_IDENTIFIERS)
-
-    def insert_relationship_between_target_node_id_and_paths(self):
-        file_path = f"/configuration/{elm.env_loader.container_name}/relationship.txt"
-        if os.path.exists(file_path):
-            with open(file_path) as f:
-                # 读取每一行
-                all_lines = f.readlines()
-                for line in all_lines:
-                    line = line.rstrip("\n")
-                    if line == "":
-                        continue
-                    else:
-                        self.netlink_client.send_netlink_data_and_retrieve_string(line,
-                                                                                  tm.NetlinkMessageType.CMD_INSERT_RELATIONSHIP_BETWEEN_NEXT_NODE_ID_AND_PATHS)
-
-    def insert_intermediate_multipath_segments(self):
-        """
-        进行中间节点管理的 segments 的插入
-        :return:
-        """
-        file_path = f"/configuration/{elm.env_loader.container_name}/intermediate_multipath_segments.txt"
-        if os.path.exists(file_path):
-            with open(file_path) as f:
-                # 读取每一行
-                all_lines = f.readlines()
-                for line in all_lines:
-                    line = line.rstrip("\n")
-                    if line == "":
-                        continue
-                    else:
-                        self.netlink_client.send_netlink_data_and_retrieve_string(line,
-                                                                                  tm.NetlinkMessageType.CMD_INTERMEDIATE_INSERT_SEGMENT)
-
-    def insert_intermediate_multipath_output_link_identifiers(self):
-        """
-        设置中间节点多路径的出接口
-        :return:
-        """
-        file_path = f"/configuration/{elm.env_loader.container_name}/intermediate_multipath_output_link_identifiers.txt"
-        if os.path.exists(file_path):
-            with open(file_path) as f:
-                # 读取每一行
-                all_lines = f.readlines()
-                first_line = all_lines[0]
-                first_line = first_line.rstrip("\n")
-                self.netlink_client.send_netlink_data_and_retrieve_string(first_line,
-                                                                          tm.NetlinkMessageType.CMD_INSERT_OUTPUT_LINK_IDENTIFIERS)
+        self.netlink_client.send_netlink_data_and_retrieve_string("",
+                                                                  tm.NetlinkMessageType.CMD_CLEAR_MULTIPATH_STATE)
 
     def set_sec_path_mab_route_for_fixed_batch(self, current_epoch_selected_path: sppm.SimPath, batch_size: int,
                                                counts: List[int]):
@@ -533,26 +399,26 @@ class KernelConfigurator:
         return self.netlink_client.send_netlink_data_and_retrieve_string("",
                                                                          tm.NetlinkMessageType.CMD_RETRIEVE_PER_PACKET_INFO)
 
-    def set_topology_information(self, number_of_hops: int, number_of_segments_per_hop: int) -> str:
-        final_string = f"{number_of_hops},{number_of_segments_per_hop}"
-        return self.netlink_client.send_netlink_data_and_retrieve_string(final_string, tm.NetlinkMessageType.CMD_SET_TOPOLOGY_INFORMATION)
+    def set_topology_information(self) -> str:
+        final_string = f"{elm.env_loader.number_of_hops},{elm.env_loader.number_of_segments_per_hop}"
+        return self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                         tm.NetlinkMessageType.CMD_SET_TOPOLOGY_INFORMATION)
 
-    def set_experiment_type(self, experiment_type: int):
-        final_string = f"{experiment_type}"
-        return self.netlink_client.send_netlink_data_and_retrieve_string(final_string, tm.NetlinkMessageType.CMD_SET_EXPERIMENT_TYPE)
+    def set_experiment_type(self):
+        final_string = f"{elm.env_loader.experiment_type}"
+        return self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                         tm.NetlinkMessageType.CMD_SET_EXPERIMENT_TYPE)
 
     def insert_session_table_entries(self, number_of_inserted_entries):
         final_string = f"{number_of_inserted_entries}"
-        return self.netlink_client.send_netlink_data_and_retrieve_string(final_string, tm.NetlinkMessageType.CMD_INSERT_SESSION_TABLE_ENTRIES)
+        return self.netlink_client.send_netlink_data_and_retrieve_string(final_string,
+                                                                         tm.NetlinkMessageType.CMD_INSERT_SESSION_TABLE_ENTRIES)
 
-    def print_lir_routes_and_interfaces(self):
-        """
-        打印 LiR 的路由条目和接口条目
-        """
-        print("----------------- ALL ROUTES -----------------")
-        for lir_route in self.lir_routes:
-            print(lir_route, flush=True)
-        print("----------------- ALL ROUTES -----------------")
+    def clear_session_table_entries(self):
+        return self.netlink_client.send_netlink_data_and_retrieve_string(
+            "", tm.NetlinkMessageType.CMD_CLEAR_SESSION_TABLE_ENTRIES)
+
+    def print_lir_interfaces(self):
         print("----------------- ALL INTERFACES -----------------")
         for lir_interface in self.lir_interfaces:
             print(lir_interface, flush=True)
@@ -562,34 +428,21 @@ class KernelConfigurator:
         """
         启动
         """
+        self.lir_interfaces = ilm.load_lir_interfaces()  # 这一步一定需要在之前完成
+        self.lir_interfaces = ilm.load_lir_interface_ifindexes(self.lir_interfaces)
+        self.print_lir_interfaces()
         self.set_node_id()
         self.set_router_type()
         self.set_sec_path_mab_type()
-        self.set_topology_information(elm.env_loader.number_of_hops,
-                                      elm.env_loader.number_of_segments_per_hop)
-        self.set_experiment_type(elm.env_loader.experiment_type)
+        self.set_topology_information()
+        self.set_experiment_type()
         self.init_forwarding_table()
-        self.init_routing_table()
-        self.init_array_based_multipath_table()
         self.init_selir()
+        self.init_epic()
         self.init_bloom_filter()
         self.insert_interface_table_entries()
-        self.insert_routing_table_entries()
-        self.insert_destination_routing_table_entries()
         self.set_lir_single_time_encoding_count()
         self.set_malicious_params_from_env()
-        # ------ 进行源的 multipath_segments / output_link_identifiers 的插入 ------
-        self.insert_source_multipath_segments()
-        self.insert_source_multipath_output_link_identifiers()
-        # ------ 进行源的 multipath_segments / output_link_identifiers 的插入 ------
-        # -----  进行中间节点的 multipath_segments / output_link_identifiers 的插入 -----
-        self.insert_relationship_between_target_node_id_and_paths()
-        self.insert_intermediate_multipath_segments()
-        self.insert_intermediate_multipath_output_link_identifiers()
-        # -----  进行中间节点的 multipath_segments / output_link_identifiers 的插入 -----
-
-    # def create_uring_mananger(self):
-    #     self.uring_manager = UringManager(buffer_size=128)
 
 
 kernel_config_loader: Optional[KernelConfigurator] = None
@@ -599,4 +452,3 @@ def load_kernel_configuration():
     global kernel_config_loader
     kernel_config_loader = KernelConfigurator()
     kernel_config_loader.start()
-    # kernel_config_loader.create_uring_mananger()

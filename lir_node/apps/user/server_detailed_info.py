@@ -32,4 +32,3 @@ class ServerDetailedInfo:
         question[0]["choices"] = get_interface_names()
         self.selected_interface_name = self.selected_interface_name if self.selected_interface_name != "" else prompt(question)["interface"]
         self.selected_ip_version = self.selected_ip_version if self.selected_ip_version != -1 else tm.IpVersion.turn_str_into_type(prompt(qm.QUESTION_FOR_IP_VERSION)["version"])
-

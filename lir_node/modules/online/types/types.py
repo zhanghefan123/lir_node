@@ -38,8 +38,3 @@ class RectifiedLossCalculateType:
 class SecPathMabExperimentType:
     TYPE_REGRET = 0
     TYPE_THROUGHPUT = 1
-
-
-class SecPathMabTopologyType:
-    NON_LINEAR = 0
-    LINEAR = 1

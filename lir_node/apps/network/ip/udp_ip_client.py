@@ -106,13 +106,15 @@ class UdpIpClient:
                              batch_size=self.client_detailed_info.batch_size,
                              message_size=self.client_detailed_info.message_size,
                              interval=self.client_detailed_info.interval)
-        elif self.transmission_pattern == tm.TransmissionType.FILE:  # 如果传输模式是以文件为单位
-            sm.send_file(dest_ip=self.selected_destination_ip,
-                         dest_port=self.destination_port,
-                         number_of_processes=self.number_of_processes,
-                         sockets=self.sockets,
-                         file_size=self.client_detailed_info.file_size,
-                         buffer_size=self.client_detailed_info.buffer_size)
+        elif self.transmission_pattern == tm.TransmissionType.DURATION:
+            sm.send_for_duration(
+                dest_ip=self.selected_destination_ip,
+                dest_port=self.destination_port,
+                number_of_processes=self.number_of_processes,
+                sockets=self.sockets,
+                buffer_size=self.client_detailed_info.buffer_size,
+                duration_seconds=self.client_detailed_info.duration_seconds,
+            )
         else:
             raise Exception(f"unsupported transmission pattern {self.transmission_pattern}")
 

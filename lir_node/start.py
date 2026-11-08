@@ -11,9 +11,8 @@ from apps.transport.udp import udp_client as ucm
 from apps.transport.udp import udp_server as usm
 from modules.srv6 import srv6_manager as smm
 from modules.server import http_server as hsm
-from modules.tc import tc as tcm
 from modules.kernel import kernel_configurator as kcm
-
+from modules.config import env_loader as elm
 
 flask_process = None
 
@@ -24,7 +23,7 @@ def wait_for_all_interfaces_available():
     :return:
     """
     while True:
-        if is_all_interfaces_available(ilm.load_interfaces()):
+        if is_all_interfaces_available(ilm.load_lir_interfaces()):
             break
         time.sleep(1)
 
@@ -41,6 +40,7 @@ class Starter:
             2. 启动 无限循环
         :return:
         """
+        elm.env_loader.print_config()  # 进行 config 的打印
         fmm.start_frr()  # 启动 frr
         wait_for_all_interfaces_available()  # 等待所有接口准备完毕
         # if env_loader.node_id == 1:
@@ -48,7 +48,7 @@ class Starter:
         kcm.load_kernel_configuration()  # 加载 lir 配置 (这个仅仅会在 all interfaces available 之后进行注入)
         if "true" == env_loader.enable_srv6:
             srv6_routes = smm.read_srv6_routes()  # 进行 srv6 routes 的读取 (放在 load_lir_configuration 之后)
-            smm.insert_srv6_routes(srv6_routes)   # 进行 srv6 routes 的插入 (放在 load_lir_configuration 之后)
+            smm.insert_srv6_routes(srv6_routes)  # 进行 srv6 routes 的插入 (放在 load_lir_configuration 之后)
         hsm.start_flask_http_service()  # 进行 http 服务的启动
 
     def main_logic_for_raspberrypi(self):
@@ -84,9 +84,3 @@ if __name__ == "__main__":
             starter.main_logic()
     else:
         print("user should input the client/server/raspberrypi/container")
-
-
-
-
-
-

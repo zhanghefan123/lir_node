@@ -2,21 +2,25 @@ import json
 from flask_cors import *
 from flask import Flask, request
 from gevent.pywsgi import WSGIServer
+
+from defined_types.types import MultipathRoutingType
+from tools import json_response as jrm
+from datetime import datetime
 from apps.user.client_detailed_info import ClientDetailedInfo
 from apps.user.server_detailed_info import ServerDetailedInfo
+from apps.transport.udp import udp_client as ucm
+from apps.transport.udp import udp_server as usm
 from modules.config import env_loader as elm
 from modules.online.check_event_thread.check_event_thread import CheckThread
 from modules.online.entities import sim_normal_router as snrm
 from modules.online.check_event_thread import scheduled_event as sem
-from tools import json_response as jrm
-from apps.transport.udp import udp_client as ucm
-from apps.transport.udp import udp_server as usm
-from datetime import datetime
 from modules.kernel import kernel_configurator as kcm
 from defined_types import types as tmm
 from modules.online.steps import simulator as sm
 from modules.online.steps import start_simulator as ssm
 from modules.online.types import types as tm
+from modules.config import route_loader as rlm
+from modules.config import multipath_loader as mlm
 
 flask_instance = Flask(__name__)
 
@@ -49,19 +53,41 @@ def flask_modify_bloom_filter_paramters():
     return jrm.get_json_response_from_map(response_data, 200)
 
 
+@flask_instance.route("/resetProcessingTimeStatistics", methods=["POST"])
+def reset_processing_time_statistics():
+    response = kcm.kernel_config_loader.reset_processing_time_statistics()
+    return jrm.get_json_response_from_map({
+        "status": "success",
+        "result": response,
+    }, 200)
+
+
+@flask_instance.route("/retrieveProcessingTimeStatistics", methods=["GET", "POST"])
+def retrieve_processing_time_statistics():
+    response = kcm.kernel_config_loader.retrieve_processing_time_statistics()
+    return jrm.get_json_response_from_map({
+        "status": "success",
+        "result": response,
+    }, 200)
+
+
 def start_client_core(data):
     client_detailed_info = ClientDetailedInfo()
     client_detailed_info.destination_port = data["destination_port"]
-    client_detailed_info.file_size = data["file_size"]
     client_detailed_info.processes = data["processes"]
     client_detailed_info.buffer_size = data["buffer_size"]
     client_detailed_info.message_size = data["message_size"]
     client_detailed_info.batch_size = data["batch_size"]
-
+    client_detailed_info.interval = data["interval"]
+    client_detailed_info.duration_seconds = data.get("duration_seconds", -1)
     client_detailed_info.content = data["content"]
     client_detailed_info.destinations = data["destinations"]
     client_detailed_info.selected_network_layer = tmm.NetworkLayer.turn_str_into_type(data["selected_network_layer"])
     client_detailed_info.transmission_pattern = tmm.TransmissionType.turn_str_into_type(data["transmission_pattern"])
+
+    if (client_detailed_info.transmission_pattern == tmm.TransmissionType.DURATION
+            and client_detailed_info.duration_seconds <= 0):
+        raise ValueError("duration_seconds must be positive for duration transmission")
 
     ucm.start_client(client_detailed_info)
 
@@ -71,7 +97,7 @@ def flask_start_client():
     data = json.loads(request.data)
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print("格式化时间:", current_time, flush=True)
+    print("启动客户端-格式化时间:", current_time, flush=True)
 
     start_client_core(data)
 
@@ -103,7 +129,7 @@ def flask_start_server():
     data = json.loads(request.data)
 
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print("格式化时间:", current_time, flush=True)
+    print("启动服务器端-格式化时间:", current_time, flush=True)
 
     start_server_core(data)
 
@@ -130,13 +156,11 @@ def init_osmd_core(data):
 
     client_detailed_info.selected_network_layer = tmm.NetworkLayer.SEC_PATH_MAB
     client_detailed_info.transmission_pattern = tmm.TransmissionType.STATUS_BATCH
-    client_detailed_info.file_size = -1
     client_detailed_info.processes = 1
     client_detailed_info.buffer_size = 1024
     client_detailed_info.destination_port = data["destination_port"]
     client_detailed_info.destinations = data["destinations"]
     client_detailed_info.message_size = data["message_size"]
-
     client_detailed_info.interval = data["packet_sending_interval"]
     client_detailed_info.content = ""
 
@@ -246,8 +270,9 @@ def start_sync_core(data):
         raise ValueError("unsupported experiment_type")
 
 
-@flask_instance.route("/insertSessionTableEntries")
+@flask_instance.route("/insertSessionTableEntries", methods=["POST"])
 def insert_session_table_entries():
+    print(f"node_id: {elm.env_loader.node_id} insert session table entries", flush=True)
     data = json.loads(request.data)
     insert_session_table_entries_core(data)
     response_data = {
@@ -259,3 +284,75 @@ def insert_session_table_entries():
 def insert_session_table_entries_core(data):
     number_of_entries = data["number_of_entries"]
     kcm.kernel_config_loader.insert_session_table_entries(number_of_entries)
+
+
+@flask_instance.route("/clearSessionTableEntries", methods=["POST"])
+def clear_session_table_entries():
+    print(f"node_id: {elm.env_loader.node_id} clear session table entries", flush=True)
+    kcm.kernel_config_loader.clear_session_table_entries()
+    response_data = {
+        "status": "success"
+    }
+    return jrm.get_json_response_from_map(response_data, 200)
+
+
+@flask_instance.route("/loadRoutes", methods=["POST"])
+def load_routes():
+    print(f"load routes", flush=True)
+    data = json.loads(request.data)
+    load_routes_core(data)
+    response_data = {
+        "status": "success"
+    }
+    return jrm.get_json_response_from_map(response_data, 200)
+
+
+def load_routes_core(data):
+    rlm.load_routes(data["transmission_type"])
+    rlm.init_routing_table()
+    rlm.insert_routing_table_entries()
+    rlm.print_lir_routes()
+
+
+@flask_instance.route("/loadMultipathTable", methods=["POST"])
+def load_multipath_table():
+    print(f"load multipath table")
+    data = json.loads(request.data)
+    load_multipath_table_core(data)
+    response_data = {
+        "status": "success"
+    }
+    return jrm.get_json_response_from_map(response_data, 200)
+
+
+def load_multipath_table_core(data):
+    multipath_routing_type = data["multipath_routing_type"]
+    mlm.init_array_based_multipath_table()
+    if multipath_routing_type == MultipathRoutingType.MULTIPATH_SELIR_ROUTING:
+        if elm.env_loader.node_id == 1:
+            mlm.insert_source_multipath_output_link_identifiers()
+        else:
+            mlm.insert_relationship_between_target_node_id_and_paths()
+            mlm.insert_intermediate_multipath_output_link_identifiers()
+    elif multipath_routing_type == MultipathRoutingType.ATLAS_MULTIPATH_ROUTING:
+        if elm.env_loader.node_id == 1:
+            # 进行源的 multipath segments / output link identifiers 的插入
+            mlm.insert_source_multipath_segments()
+        else:
+            # 进行中间节点的 multipath_segments / output_link_identifiers 的插入
+            mlm.insert_intermediate_multipath_segments()
+
+
+@flask_instance.route("/clearMultipathState", methods=["POST"])
+def clean_multipath_state():
+    print(f"clean multipath table")
+    clean_multipath_state_core()
+    response_data = {
+        "status": "success"
+    }
+    return jrm.get_json_response_from_map(response_data, 200)
+
+
+def clean_multipath_state_core():
+    kcm.kernel_config_loader.clear_segments_by_destination(destination=26)
+    kcm.kernel_config_loader.clear_output_link_identifiers()

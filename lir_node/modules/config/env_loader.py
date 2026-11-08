@@ -1,189 +1,426 @@
 import os
-from typing import Optional
+from dataclasses import dataclass
+from multiprocessing.managers import Value
+
 from defined_types import types as tm
 
 
+@dataclass
 class MaliciousParams:
-    def __init__(self):
-        self.corrupt_ratio_start: int = 0
-        self.corrupt_ratio_end: int = 0
-        self.corrupt_special_packet_ratio_start: int = 0
-        self.corrupt_special_packet_ratio_end: int = 0
+    corrupt_ratio_start: int = 0
+    corrupt_ratio_end: int = 0
+    corrupt_special_packet_ratio_start: int = 0
+    corrupt_special_packet_ratio_end: int = 0
 
 
 class EnvLoader:
-    def __init__(self):
+    # ============================================================
+    # 配置字段
+    # ============================================================
+
+    # 环境变量名称 -> EnvLoader 属性名称
+    CONFIG_FIELDS = {
+        "LISTEN_PORT": "listen_port",
+        "ENABLE_FRR": "enable_frr",
+        "CONTAINER_NAME": "container_name",
+
+        "BF_EFFECTIVE_BITS": "bf_effective_bits",
+        "PVF_EFFECTIVE_BITS": "pvf_effective_bits",
+        "HASH_SEED": "hash_seed",
+        "NUMBER_OF_HASH_FUNCTIONS": "number_of_hash_functions",
+
+        "ROUTING_TABLE_TYPE": "routing_table_type",
+
+        "NODE_ID": "node_id",
+        "GRAPH_NODE_ID": "graph_node_id",
+
+        "LIR_SINGLE_TIME_ENCODING_COUNT": "lir_single_time_encoding_count",
+
+        "ENABLE_SRV6": "enable_srv6",
+        "ENABLE_SEC_PATH_MAB": "enable_sec_path_mab",
+
+        "NUMBER_OF_HOPS": "number_of_hops",
+        "NUMBER_OF_SEGMENTS_PER_HOP": "number_of_segments_per_hop",
+
+        "ROUTER_TYPE": "router_type",
+        "SELIR_TYPE": "selir_type",
+        "EPIC_TYPE": "epic_type",
+        "SEC_PATH_MAB_TYPE": "sec_path_mab_type",
+
+        "EXPERIMENT_TYPE": "experiment_type",
+    }
+
+    # 需要转换成 int 的字段
+    INTEGER_FIELDS = {
+        "BF_EFFECTIVE_BITS",
+        "PVF_EFFECTIVE_BITS",
+        "HASH_SEED",
+        "NUMBER_OF_HASH_FUNCTIONS",
+
+        "ROUTING_TABLE_TYPE",
+
+        "NODE_ID",
+        "GRAPH_NODE_ID",
+
+        "LIR_SINGLE_TIME_ENCODING_COUNT",
+
+        "NUMBER_OF_HOPS",
+        "NUMBER_OF_SEGMENTS_PER_HOP",
+
+        "ROUTER_TYPE",
+        "SELIR_TYPE",
+        "EPIC_TYPE",
+        "SEC_PATH_MAB_TYPE",
+
+        "EXPERIMENT_TYPE",
+    }
+
+    # 恶意节点相关参数
+    MALICIOUS_FIELDS = {
+        "CORRUPT_RATIO_START": "corrupt_ratio_start",
+        "CORRUPT_RATIO_END": "corrupt_ratio_end",
+        "CORRUPT_SPECIAL_PACKET_RATIO_START":
+            "corrupt_special_packet_ratio_start",
+        "CORRUPT_SPECIAL_PACKET_RATIO_END":
+            "corrupt_special_packet_ratio_end",
+    }
+
+    # 环境变量模式下必须存在的字段
+    REQUIRED_ENV_FIELDS = {
+        *CONFIG_FIELDS.keys(),
+        *MALICIOUS_FIELDS.keys(),
+    }
+
+    def __init__(
+            self,
+            config_file_path: str =
+            "C:\\zhf_projects\\security\\security_topology\\images\\lir_node\\resources\\envs.txt",
+    ):
+        self.config_file_path = config_file_path
+
+        # --------------------------------------------------------
+        # 基础配置
+        # --------------------------------------------------------
         self.listen_port = None
         self.enable_frr = None
         self.container_name = None
+
         self.bf_effective_bits = None
         self.pvf_effective_bits = None
         self.hash_seed = None
         self.number_of_hash_functions = None
+
         self.routing_table_type = None
-        self.transmission_type = None
+
         self.node_id = None
         self.graph_node_id = None
+
         self.lir_single_time_encoding_count = None
-        self.enable_srv6 = None  # 是否开启 SRv6 in str format
-        self.number_of_nodes = None  # 总共的节点数量是多少
-        self.multipath_routing_type = None  # 多路径路由类型
-        self.malicious_params: Optional[MaliciousParams] = None  # 恶意参数
+
+        self.enable_srv6 = None
+        self.enable_sec_path_mab = None
+
         self.number_of_hops = None
         self.number_of_segments_per_hop = None
-        self.router_type: int = -1  # 路由器的类型
-        self.sec_path_mab_type: int = -1  # 选择的 sec_path_mab 策略的类型
-        self.experiment_type: int = 0  # 选择的实验类型
-        self.topology_type: int = 0  # 选择的拓扑类型
 
-        self.load_from_env()
-        if None in [self.listen_port, self.enable_frr, self.container_name, self.bf_effective_bits,
-                    self.pvf_effective_bits, self.hash_seed, self.number_of_hash_functions, self.routing_table_type,
-                    self.transmission_type, self.node_id, self.graph_node_id, self.lir_single_time_encoding_count,
-                    self.enable_srv6]:
-            # 如果全部存在值的话
-            self.load_from_file()
+        # --------------------------------------------------------
+        # 类型配置
+        # --------------------------------------------------------
+        self.router_type: int = -1
+        self.selir_type: int = -1
+        self.epic_type: int = -1
+        self.sec_path_mab_type: int = -1
+        self.experiment_type: int = 0
+
+        # --------------------------------------------------------
+        # 恶意节点配置
+        # --------------------------------------------------------
+        self.malicious_params = MaliciousParams()
+
+        # --------------------------------------------------------
+        # 加载配置
+        # --------------------------------------------------------
+        self.load()
+
+    # ============================================================
+    # 总入口
+    # ============================================================
+
+    def load(self):
+        """
+        优先从环境变量加载配置。
+
+        如果环境变量不完整，则回退到配置文件。
+        """
+
+        missing_fields = self.get_missing_env_fields()
+
+        if not missing_fields:
+            print("load configuration from environment variables", flush=True)
+            self.load_from_env()
         else:
-            pass
+            print(
+                "environment variables are incomplete, "
+                "fallback to configuration file",
+                flush=True,
+            )
+
+            print(
+                f"missing environment variables: "
+                f"{', '.join(sorted(missing_fields))}",
+                flush=True,
+            )
+
+            self.load_from_file()
+
+        self.validate()
+
+    # ============================================================
+    # 环境变量检查
+    # ============================================================
+
+    def get_missing_env_fields(self):
+        """
+        返回缺失的环境变量。
+        """
+
+        required_fields = (
+            self.REQUIRED_ENV_FIELDS
+        )
+
+        return [
+            field
+            for field in required_fields
+            if os.getenv(field) is None
+        ]
+
+    # ============================================================
+    # 从环境变量加载
+    # ============================================================
 
     def load_from_env(self):
         try:
-            # 获取一般类型参数
-            self.listen_port = os.getenv("LISTEN_PORT")
-            self.enable_frr = os.getenv("ENABLE_FRR")
-            self.container_name = os.getenv("CONTAINER_NAME")
-            self.bf_effective_bits = int(os.getenv("BF_EFFECTIVE_BITS"))
-            self.pvf_effective_bits = int(os.getenv("PVF_EFFECTIVE_BITS"))
-            self.hash_seed = int(os.getenv("HASH_SEED"))
-            self.number_of_hash_functions = int(os.getenv("NUMBER_OF_HASH_FUNCTIONS"))
-            self.routing_table_type = int(os.getenv("ROUTING_TABLE_TYPE"))
-            self.transmission_type = int(os.getenv("TRANSMISSION_TYPE"))
-            self.node_id = int(os.getenv("NODE_ID"))
-            self.graph_node_id = int(os.getenv("GRAPH_NODE_ID"))
-            self.lir_single_time_encoding_count = int(os.getenv("LIR_SINGLE_TIME_ENCODING_COUNT"))
-            self.enable_srv6 = os.getenv("ENABLE_SRV6")  # 是否开启 SRv6 in str format
-            self.number_of_nodes = int(os.getenv("NUMBER_OF_NODES"))  # 节点的数量
-            self.multipath_routing_type = int(os.getenv("MULTIPATH_ROUTING_TYPE"))  # 多路径路由类型
-            self.number_of_hops = int(os.getenv("NUMBER_OF_HOPS"))
-            self.number_of_segments_per_hop = int(os.getenv("NUMBER_OF_SEGMENTS_PER_HOP"))
-            self.experiment_type = int(os.getenv("EXPERIMENT_TYPE"))
-            self.topology_type = int(os.getenv("TOPOLOGY_TYPE"))
+            # 普通配置
+            for field in self.CONFIG_FIELDS:
+                value = os.getenv(field)
 
-            # 初始化恶意参数
-            self.malicious_params = MaliciousParams()
-            self.malicious_params.corrupt_ratio_start = int(os.getenv("CORRUPT_RATIO_START"))
-            self.malicious_params.corrupt_ratio_end = int(os.getenv("CORRUPT_RATIO_END"))
-            self.malicious_params.corrupt_special_packet_ratio_start = int(
-                os.getenv("CORRUPT_SPECIAL_PACKET_RATIO_START"))
-            self.malicious_params.corrupt_special_packet_ratio_end = int(os.getenv("CORRUPT_SPECIAL_PACKET_RATIO_END"))
+                if value is None:
+                    raise ValueError(
+                        f"missing environment variable: {field}"
+                    )
 
-            # 初始化路由器类型
-            router_type = int(os.getenv("ROUTER_TYPE"))
-            if (router_type != tm.RouterType.NORMAL_ROUTER) and (router_type != tm.RouterType.PATH_VALIDATION_ROUTER):
-                raise ValueError("unsupported router type")
-            else:
-                self.router_type = router_type
+                self.set_config(field, value)
 
-            # 初始化 sec_path_mab 策略的类型
-            sec_path_mab_type = int(os.getenv("SEC_PATH_MAB_TYPE"))
-            if (sec_path_mab_type != tm.SecPathMabType.SEC_PATH_MAB_STRATEGY_FIXED_BATCH) and (
-                    sec_path_mab_type != tm.SecPathMabType.SEC_PATH_MAB_STRATEGY_DYNAMIC_BATCH) and (
-                    sec_path_mab_type != tm.SecPathMabType.SEC_PATH_MAB_STRATEGY_PATH_BANDIT):
-                raise ValueError("unsupported sec_path_mab type")
-            else:
-                self.sec_path_mab_type = sec_path_mab_type
+            # 恶意节点配置
+            for field in self.MALICIOUS_FIELDS:
+                value = os.getenv(field)
+
+                if value is None:
+                    raise ValueError(
+                        f"missing environment variable: {field}"
+                    )
+
+                self.set_config(field, value)
 
         except Exception as e:
-            print(f"load from env failed: {e}")
+            raise RuntimeError(
+                f"load configuration from env failed: {e}"
+            ) from e
+
+    # ============================================================
+    # 从文件加载
+    # ============================================================
 
     def load_from_file(self):
-        print("load from file", flush=True)
-        try:
-            with open("C:\\zhf_projects\\security\\security_topology\\images\\lir_node\\resources\\envs.txt") as f:
-                for line in f.readlines():
-                    line = line.strip()  # 去除换行符和首尾空格
+        print(
+            f"load configuration from file: "
+            f"{self.config_file_path}",
+            flush=True,
+        )
 
-                    # 跳过空行和注释行
+        try:
+            with open(self.config_file_path, "r") as f:
+                for raw_line in f:
+                    line = raw_line.strip()
+
+                    # 跳过空行和注释
                     if not line or line.startswith("#"):
                         continue
 
+                    # 非 KEY=VALUE 格式
                     if "=" not in line:
+                        print(
+                            f"ignore invalid config line: {line}",
+                            flush=True,
+                        )
                         continue
 
-                    # 仅在第一个等号处分割，防止 value 中包含等号
                     field, value = line.split("=", 1)
+
                     field = field.strip()
                     value = value.strip()
 
-                    # ---------------- 基础配置 ----------------
-                    if field == "LISTEN_PORT":
-                        self.listen_port = value
-                    elif field == "ENABLE_FRR":
-                        self.enable_frr = value
-                    elif field == "CONTAINER_NAME":
-                        self.container_name = value
-                    elif field == "BF_EFFECTIVE_BITS":
-                        self.bf_effective_bits = int(value)
-                    elif field == "PVF_EFFECTIVE_BITS":
-                        self.pvf_effective_bits = int(value)
-                    elif field == "HASH_SEED":
-                        self.hash_seed = int(value)
-                    elif field == "NUMBER_OF_HASH_FUNCTIONS":
-                        self.number_of_hash_functions = int(value)
-                    elif field == "ROUTING_TABLE_TYPE":
-                        self.routing_table_type = int(value)
-                    elif field == "NODE_ID":
-                        self.node_id = int(value)
-                    elif field == "GRAPH_NODE_ID":
-                        self.graph_node_id = int(value)
-                    elif field == "LIR_SINGLE_TIME_ENCODING_COUNT":
-                        self.lir_single_time_encoding_count = int(value)
-                    elif field == "ENABLE_SRV6":
-                        self.enable_srv6 = value
+                    self.set_config(field, value)
 
-                    # ---------------- 补全缺失的基础变量 ----------------
-                    elif field == "TRANSMISSION_TYPE":
-                        self.transmission_type = int(value)
-                    elif field == "NUMBER_OF_NODES":
-                        self.number_of_nodes = int(value)
-                    elif field == "MULTIPATH_ROUTING_TYPE":
-                        self.multipath_routing_type = int(value)
+        except FileNotFoundError as e:
+            raise RuntimeError(
+                f"configuration file not found: "
+                f"{self.config_file_path}"
+            ) from e
 
-                    # ---------------- 恶意参数配置 ----------------
-                    elif field.startswith("CORRUPT_"):
-                        # 如果是第一次遇到恶意参数，初始化 MaliciousParams
-                        if self.malicious_params is None:
-                            self.malicious_params = MaliciousParams()
-
-                        if field == "CORRUPT_RATIO_START":
-                            self.malicious_params.corrupt_ratio_start = int(value)
-                            print("start_ratio:", self.malicious_params.corrupt_ratio_start, flush=True)
-                        elif field == "CORRUPT_RATIO_END":
-                            self.malicious_params.corrupt_ratio_end = int(value)
-                            print("end_ratio:", self.malicious_params.corrupt_ratio_end, flush=True)
-                        elif field == "CORRUPT_SPECIAL_PACKET_RATIO_START":
-                            self.malicious_params.corrupt_special_packet_ratio_start = int(value)
-                        elif field == "CORRUPT_SPECIAL_PACKET_RATIO_END":
-                            self.malicious_params.corrupt_special_packet_ratio_end = int(value)
-                        else:
-                            print(f"Warning: Unknown malicious parameter '{field}'")
-
-                    # ---------------- 路由器类型及校验 ----------------
-                    elif field == "ROUTER_TYPE":
-                        router_type = int(value)
-                        if (router_type != tm.RouterType.NORMAL_ROUTER) and (
-                                router_type != tm.RouterType.PATH_VALIDATION_ROUTER):
-                            raise ValueError(f"unsupported router type configured in envs.txt: {router_type}")
-                        else:
-                            self.router_type = router_type
-
-                    else:
-                        print(f"Warning: Unknown environment variable '{field}'")
-
-        except FileNotFoundError:
-            print("Error: /home/zeusnet/Projects/lir_node/lir_node/envs.txt not found.", flush=True)
         except Exception as e:
-            print(f"load from file failed: {e}", flush=True)
+            raise RuntimeError(
+                f"load configuration from file failed: {e}"
+            ) from e
+
+    # ============================================================
+    # 统一设置配置
+    # ============================================================
+
+    def set_config(self, field: str, value):
+        """
+        统一处理：
+        1. 字段识别
+        2. 类型转换
+        3. 属性赋值
+        """
+
+        # --------------------------------------------------------
+        # 普通配置
+        # --------------------------------------------------------
+        if field in self.CONFIG_FIELDS:
+
+            attr_name = self.CONFIG_FIELDS[field]
+
+            if field in self.INTEGER_FIELDS:
+                value = int(value)
+
+            setattr(self, attr_name, value)
+            return
+
+        # --------------------------------------------------------
+        # 恶意节点配置
+        # --------------------------------------------------------
+        if field in self.MALICIOUS_FIELDS:
+            attr_name = self.MALICIOUS_FIELDS[field]
+
+            setattr(
+                self.malicious_params,
+                attr_name,
+                int(value),
+            )
+            return
+
+        # --------------------------------------------------------
+        # 未知字段
+        # --------------------------------------------------------
+        print(
+            f"warning: unknown configuration field '{field}'",
+            flush=True,
+        )
+
+    # ============================================================
+    # 配置合法性检查
+    # ============================================================
+
+    def validate(self):
+        """
+        所有配置加载完成后统一校验。
+        """
+
+        self.validate_selir_type()
+        self.validate_epic_type()
+        self.validate_router_type()
+        self.validate_sec_path_mab_type()
+
+        print("configuration loaded successfully", flush=True)
+
+    def validate_selir_type(self):
+        valid_selir_types = {
+            tm.SelirType.SLOW_VERSION,
+            tm.SelirType.FAST_VERSION,
+        }
+        if self.selir_type not in valid_selir_types:
+            raise ValueError(
+                f"unsupported router type: {self.selir_type}"
+            )
+
+    def validate_epic_type(self):
+        valid_epic_types = {
+            tm.EpicType.EPIC_L3_VERSION,
+            tm.EpicType.EPIC_L4_VERSION,
+        }
+        if self.epic_type not in valid_epic_types:
+            raise ValueError(
+                f"unsupported router type: {self.selir_type}"
+            )
+
+    def validate_router_type(self):
+        valid_router_types = {
+            tm.RouterType.NORMAL_ROUTER,
+            tm.RouterType.PATH_VALIDATION_ROUTER,
+        }
+
+        if self.router_type not in valid_router_types:
+            raise ValueError(
+                f"unsupported router type: {self.router_type}"
+            )
+
+    def validate_sec_path_mab_type(self):
+        valid_types = {
+            tm.SecPathMabType.SEC_PATH_MAB_STRATEGY_FIXED_BATCH,
+            tm.SecPathMabType.SEC_PATH_MAB_STRATEGY_DYNAMIC_BATCH,
+            tm.SecPathMabType.SEC_PATH_MAB_STRATEGY_PATH_BANDIT,
+        }
+
+        if self.sec_path_mab_type not in valid_types:
+            raise ValueError(
+                f"unsupported sec_path_mab type: "
+                f"{self.sec_path_mab_type}"
+            )
+
+    # ============================================================
+    # 调试
+    # ============================================================
+
+    def print_config(self):
+        """
+        打印当前配置，方便排查 Docker 环境变量问题。
+        """
+
+        print(
+            "================ CONFIGURATION ================",
+            flush=True,
+        )
+
+        for field, attr_name in self.CONFIG_FIELDS.items():
+            value = getattr(self, attr_name)
+
+            print(
+                f"{field:<40} = {value}",
+                flush=True,
+            )
+
+        print(
+            "---------------- MALICIOUS ----------------",
+            flush=True,
+        )
+
+        for field, attr_name in self.MALICIOUS_FIELDS.items():
+            value = getattr(
+                self.malicious_params,
+                attr_name,
+            )
+
+            print(
+                f"{field:<40} = {value}",
+                flush=True,
+            )
+
+        print(
+            "===============================================",
+            flush=True,
+        )
 
 
 env_loader = EnvLoader()

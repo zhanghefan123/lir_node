@@ -61,7 +61,7 @@ def load_all_interfaces() -> (List[Interface], Dict[str, Interface]):
     return all_lir_interfaces, all_lir_interfaces_mapping
 
 
-def load_interfaces() -> List[Interface]:
+def load_lir_interfaces() -> List[Interface]:
     """
     加载接口条目
     :return: 接口条目系列
@@ -99,6 +99,7 @@ def load_lir_interface_ifindexes(lir_interfaces: List[Interface]):
     mapping = get_current_interface_to_ifindex_mapping()
     for lir_interface in lir_interfaces:
         lir_interface.ifindex = mapping[lir_interface.interface_name]
+    return lir_interfaces
 
 
 def is_all_interfaces_available(lir_interfaces: List[Interface]) -> bool:

@@ -95,8 +95,8 @@ QUESTION_FOR_PACKET_TRANSMISSION_PATTERN = [
     {
         "type": "list",
         "name": "pattern",
-        "message": "请选择三种发送模式之中的一种 [single] [batch] [file] [quit to exit]:",
-        "choices": ["single", "batch", "file", "quit"]
+        "message": "请选择三种发送模式之中的一种 [single] [batch] [duration] [quit to exit]:",
+        "choices": ["single", "batch", "duration", "quit"]
     }
 ]
 
@@ -129,12 +129,12 @@ QUESTION_FOR_SEND_INTERVAL = [
     }
 ]
 
-QUESTION_FOR_FILE_SIZE = [
+QUESTION_FOR_DURATION_SECONDS = [
     {
         "type": "input",
-        "name": "count",
-        "message": "请输入要发送文件的大小 (字节): ",
-        "default": "100"
+        "name": "seconds",
+        "message": "请输入持续发送的秒数: ",
+        "default": "60"
     }
 ]
 

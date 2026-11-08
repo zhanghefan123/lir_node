@@ -9,12 +9,10 @@ from modules.config import env_loader as elm
 
 
 def find_next_pv_router_or_end_host(sim_path: 'SimPath', start_index: int) -> Tuple[Any, int, Any]:
-    if tm.SecPathMabTopologyType.NON_LINEAR == elm.env_loader.topology_type:
+    if elm.env_loader.enable_sec_path_mab == "true":
         return find_next_pv_router_or_end_host_under_non_linear_topology(sim_path, start_index)
-    elif tm.SecPathMabTopologyType.LINEAR == elm.env_loader.topology_type:
-        return find_next_pv_router_or_end_host_under_linear_topology(sim_path, start_index)
     else:
-        raise ValueError(f"unsupported experiment type: {elm.env_loader.experiment_type}")
+        return find_next_pv_router_or_end_host_under_linear_topology(sim_path, start_index)
 
 
 def find_next_pv_router_or_end_host_under_non_linear_topology(sim_path: "SimPath", start_index: int) -> Tuple[Any, int, Any]:

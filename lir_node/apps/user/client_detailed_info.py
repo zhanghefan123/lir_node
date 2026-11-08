@@ -20,7 +20,6 @@ class ClientDetailedInfo:
 
     # size related vaiables
     processes: int = -1
-    file_size: int = -1
     buffer_size: int = -1
     message_size: int = -1
     batch_size: int = -1
@@ -31,6 +30,7 @@ class ClientDetailedInfo:
 
     # time related variables
     interval: float = -1
+    duration_seconds: float = -1
 
     # all the mappigns
     name_to_srv6_dest_ip_mapping: Dict[str, str] = None
